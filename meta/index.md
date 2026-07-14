@@ -73,3 +73,5 @@ _Last updated: 2026-07-14 (skeleton — no content pages yet)_
 - [[FAQ - Credit Auto-Release Integration]] — technical open questions
 
 - [[FAQ - Transporting Background Jobs]] — process & transport open question
+
+- [[Standard - ABAP Naming Conventions]] — custom object prefixes, variable scope/type prefixes, OO and program naming
