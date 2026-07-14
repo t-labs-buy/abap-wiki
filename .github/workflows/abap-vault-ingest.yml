@@ -1,0 +1,47 @@
+name: ABAP Vault Ingest
+
+on:
+  push:
+    paths:
+      - 'raw/inbox/**'        # runs whenever a new file lands in the inbox
+  schedule:
+    - cron: '0 7 * * 1'       # weekly safety-net sweep, Mondays 07:00 UTC
+  workflow_dispatch:           # manual "Run workflow" button
+
+concurrency:
+  group: vault-ingest
+  cancel-in-progress: false    # runs queue up instead of colliding
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vault
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic pdfplumber python-pptx python-docx openpyxl
+
+      - name: Run ingest agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python .github/scripts/abap-ingest.py
+
+      - name: Commit and push vault updates
+        run: |
+          git config user.name "ABAP Vault"
+          git config user.email "abap-vault@yourcompany.com"
+          git add -A
+          git diff --staged --quiet || git commit -m "ABAP Vault: auto-ingest $(date +%Y-%m-%d)"
+          git pull --rebase origin main
+          git push

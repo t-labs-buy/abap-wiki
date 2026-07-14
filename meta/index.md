@@ -42,6 +42,10 @@ _Last updated: 2026-07-14 (skeleton — no content pages yet)_
 
 - _(none yet)_
 
+### Troubleshooting Guides
+
+- _(none yet)_
+
 ### FAQs
 
 - _(none yet)_

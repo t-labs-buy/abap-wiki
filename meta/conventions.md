@@ -12,21 +12,23 @@ The short version of `CLAUDE.md` for teammates. When this page and `CLAUDE.md` d
 
 ## Naming cheat sheet
 
-| Creating a…     | Path                                | Filename                                      |
-| --------------- | ----------------------------------- | --------------------------------------------- |
-| Standard        | `01-standards/coding/`              | `Standard - {Name}.md`                        |
-| Workstream page | `02-workstreams/Workstreams/`       | `{WS}.md`                                     |
-| Stakeholder     | `02-workstreams/Stakeholders/{WS}/` | `{WS} - {Full Name}.md`                       |
-| Meeting         | `02-workstreams/Meetings/{WS}/`     | `{WS} - {Topic} - {YYYY-MM-DD}.md`            |
-| Decision        | `02-workstreams/Decisions/{WS}/`    | `Decision - {WS} - {Topic} - {YYYY-MM-DD}.md` |
-| Spec            | `02-workstreams/Specs/{WS}/`        | `{WS} - Spec - {Object or Topic}.md`          |
-| Development     | `02-workstreams/Developments/{WS}/` | `{WS} - {ID} - {Object Name}.md`              |
-| Issue           | `02-workstreams/Issues/{WS}/`       | `{WS} - Issue - {Topic} - {YYYY-MM-DD}.md`    |
-| Pattern         | `03-intelligence/patterns/`         | `Pattern - {Name}.md`                         |
-| Gotcha          | `03-intelligence/gotchas/`          | `Gotcha - {Name}.md`                          |
-| Lessons         | `03-intelligence/lessons-learned/`  | `Lessons - {Context} - {Year}.md`             |
-| FAQ             | `03-intelligence/faqs/{topic}/`     | `FAQ - {Topic}.md`                            |
-| Runbook         | `04-internal/runbooks/`             | `Runbook - {Name}.md`                         |
+| Creating a…     | Path                                | Filename                                        |
+| --------------- | ----------------------------------- | ----------------------------------------------- |
+| Standard        | `01-standards/coding/`              | `Standard - {Name}.md`                          |
+| Workstream page | `02-workstreams/Workstreams/`       | `{WS}.md`                                       |
+| Stakeholder     | `02-workstreams/Stakeholders/{WS}/` | `{WS} - {Full Name}.md`                         |
+| Meeting         | `02-workstreams/Meetings/{WS}/`     | `{WS} - {Topic} - {YYYY-MM-DD}.md`              |
+| Decision        | `02-workstreams/Decisions/{WS}/`    | `Decision - {WS} - {Topic} - {YYYY-MM-DD}.md`   |
+| Spec            | `02-workstreams/Specs/{WS}/`        | `{WS} - Spec - {Object or Topic}.md`            |
+| Development     | `02-workstreams/Developments/{WS}/` | `{WS} - {ID} - {Object Name}.md`                |
+| Estimation      | `02-workstreams/Estimations/{WS}/`  | `{WS} - Estimation - {Topic} - {YYYY-MM-DD}.md` |
+| Issue           | `02-workstreams/Issues/{WS}/`       | `{WS} - Issue - {Topic} - {YYYY-MM-DD}.md`      |
+| Pattern         | `03-intelligence/patterns/`         | `Pattern - {Name}.md`                           |
+| Gotcha          | `03-intelligence/gotchas/`          | `Gotcha - {Name}.md`                            |
+| Troubleshooting | `03-intelligence/troubleshooting/`  | `Troubleshooting - {Area}.md`                   |
+| Lessons         | `03-intelligence/lessons-learned/`  | `Lessons - {Context} - {Year}.md`               |
+| FAQ             | `03-intelligence/faqs/{topic}/`     | `FAQ - {Topic}.md`                              |
+| Runbook         | `04-internal/runbooks/`             | `Runbook - {Name}.md`                           |
 
 ## Frontmatter
 

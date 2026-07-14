@@ -22,13 +22,16 @@ source_files: []
 
 ## Object Details
 
-| Field               | Value                                                                    |
-| ------------------- | ------------------------------------------------------------------------ |
-| WRICEF type         | <!-- Workflow / Report / Interface / Conversion / Enhancement / Form --> |
-| Main object(s)      | <!-- program/class/CDS/BAdI names -->                                    |
-| Package             |                                                                          |
-| Transport(s)        |                                                                          |
-| Extension technique | <!-- user exit, BAdI, enhancement spot, clean-core API… -->              |
+| Field               | Value                                                                      |
+| ------------------- | -------------------------------------------------------------------------- |
+| WRICEF type         | <!-- Workflow / Report / Interface / Conversion / Enhancement / Form -->   |
+| Main object(s)      | <!-- program/class/CDS/BAdI names -->                                      |
+| Package             |                                                                            |
+| Transport(s)        |                                                                            |
+| Extension technique | <!-- user exit, BAdI, enhancement spot, clean-core API… -->                |
+| Complexity          | <!-- Simple / Medium / Complex -->                                         |
+| Estimated effort    | <!-- person-days, link the estimation page: [[…]] -->                      |
+| Actual effort       | <!-- person-days — fill at completion, with variance reason if notable --> |
 
 ## Key Logic
 
@@ -36,7 +39,17 @@ source_files: []
 
 ## Dependencies
 
-<!-- Config, master data, other developments, interfaces. -->
+<!-- Everything this object depends on AND what depends on it: tables, classes, function modules,
+     CDS views, enhancements, config, master data, interfaces. Use [[wikilinks]] for vault-known
+     objects — the Obsidian graph view turns these into a visual dependency map. -->
+
+**Depends on:**
+
+- [[…]]
+
+**Used by:**
+
+- [[…]]
 
 ## Known Limitations
 

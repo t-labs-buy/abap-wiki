@@ -66,6 +66,13 @@ abap-vault/
 │   │   ├── _Template-Development.md
 │   │   ├── OTC/
 │   │   │   └── OTC - E-001 - Sales Order User Exit.md
+│   │   ├── SD/                      [Module slug — legacy objects not tied to a workstream]
+│   │   │   └── SD - ZSD_ORDER_CHECK.md
+│   │   └── [more workstreams]
+│   ├── Estimations/
+│   │   ├── _Template-Estimation.md
+│   │   ├── OTC/
+│   │   │   └── OTC - Estimation - Wave 2 WRICEF list - 2026-07-20.md
 │   │   └── [more workstreams]
 │   ├── Issues/
 │   │   ├── _Template-Issue.md
@@ -87,6 +94,9 @@ abap-vault/
 │   ├── gotchas/
 │   │   ├── _Template-Gotcha.md
 │   │   └── Gotcha - BAPI_TRANSACTION_COMMIT wait flag.md
+│   ├── troubleshooting/
+│   │   ├── _Template-Troubleshooting.md
+│   │   └── Troubleshooting - IDoc failures.md
 │   └── faqs/
 │       ├── technical/
 │       │   └── _Template-FAQ.md
@@ -130,9 +140,9 @@ abap-vault/
 
 1. **`01-standards/`** — Stable reference. Coding standards, naming conventions, architecture principles, system landscape documentation. Changes rarely; treated as evergreen.
 
-2. **`02-workstreams/`** — Active delivery work. Everything tied to a specific workstream: workstream overview, stakeholders, meetings, decisions, specs, developments (WRICEF objects), issues, and open questions. Each artifact-type folder contains a location-specific template.
+2. **`02-workstreams/`** — Active delivery work. Everything tied to a specific workstream: workstream overview, stakeholders, meetings, decisions, specs (FS + TS), developments (WRICEF objects), effort estimations, issues, and open questions. Each artifact-type folder contains a location-specific template.
 
-3. **`03-intelligence/`** — Reusable learnings. Patterns seen twice or more, lessons learned, gotchas, and FAQs. What the team has learned that outlives any single workstream.
+3. **`03-intelligence/`** — Reusable learnings. Patterns seen twice or more, lessons learned, gotchas, troubleshooting guides, and FAQs. What the team has learned that outlives any single workstream.
 
 4. **`04-internal/`** — Team operations: contacts, onboarding, processes, runbooks. Internal-only.
 
@@ -171,8 +181,12 @@ Keep `meta/` and `raw/` exactly as-is — the ingestion pipeline code depends on
 - Stakeholder context: who owns what, concerns, escalation paths
 - Functional and technical spec content that survives the meeting it came from
 - Development records: what was built, why, where it lives, known limitations
+- Effort estimates AND actuals with variance reasons — the calibration loop that makes future estimates quotable
+- Object dependencies: what a development depends on and what depends on it
+- Functional summaries of legacy code (marked `ai-generated` until SME-validated)
 - Architecture tradeoffs and constraints (landscape, clean core, performance)
 - Root causes of issues, and how they were resolved
+- Diagnostic paths that resolved the same problem class more than once
 - Reusable patterns (anything appearing a 2nd time)
 - Gotchas: non-obvious SAP behavior that cost someone hours
 - Questions clients or the team ask repeatedly
@@ -196,22 +210,24 @@ Keep `meta/` and `raw/` exactly as-is — the ingestion pipeline code depends on
 - **`architecture`** — An architecture principle or documented tradeoff. **Folder:** `architecture/`
 - **`landscape`** — System landscape documentation: systems, clients, transport routes. **Folder:** `landscape/`
 
-### Zone 02: Workstreams (8 Artifact Types with Workstream Subfolders)
+### Zone 02: Workstreams (9 Artifact Types with Workstream Subfolders)
 
 - **`workstream`** — Workstream overview: scope, status, key objects, active threads, next actions. **Folder:** `Workstreams/`
 - **`stakeholder`** — Individual: role, responsibilities, concerns, how they respond, current asks. **Folder:** `Stakeholders/{WS}/`
 - **`meeting`** — Touchpoint: what we learned, decisions, asks, open questions. **Folder:** `Meetings/{WS}/`
 - **`decision`** — Design/scope/approach decision with rationale and date. **Folder:** `Decisions/{WS}/`
 - **`spec`** — Functional or technical specification content in durable form. **Folder:** `Specs/{WS}/`
-- **`development`** — A WRICEF object record: what it does, where it lives, dependencies, status. **Folder:** `Developments/{WS}/`
+- **`development`** — A WRICEF object record: what it does, where it lives, dependencies, complexity, effort (estimated vs actual), status. **Folder:** `Developments/{WS}/`
+- **`estimation`** — A dated effort-estimation exercise: scope, assumptions, per-object estimates, and (later) actuals. **Folder:** `Estimations/{WS}/`
 - **`issue`** — Defect or blocker: symptom, root cause, resolution, affected objects. **Folder:** `Issues/{WS}/`
 - **`open-questions`** — One rolling page per workstream tracking unresolved questions with owners. **Folder:** `Open-Questions/`
 
-### Zone 03: Intelligence (4 Subfolders)
+### Zone 03: Intelligence (5 Subfolders)
 
 - **`pattern`** — Repeated insight/approach appearing in 2+ workstreams or objects. **Folder:** `patterns/`
 - **`lessons-learned`** — Distilled learnings from a phase, go-live, or workstream. **Folder:** `lessons-learned/`
 - **`gotcha`** — Non-obvious behavior that cost real time; written so nobody pays twice. **Folder:** `gotchas/`
+- **`troubleshooting`** — Curated diagnostic guide for a recurring problem area: symptoms → checks → causes → fixes. The layer above individual Issues and gotchas. **Folder:** `troubleshooting/`
 - **`faq`** — Questions asked repeatedly, answered and unanswered, organized by topic. **Folder:** `faqs/{topic}/`
 
 ### Zone 04: Internal Operations
@@ -241,16 +257,20 @@ Keep `meta/` and `raw/` exactly as-is — the ingestion pipeline code depends on
 
 `{WS}` is the canonical workstream slug from `meta/entities.md` (e.g. `OTC`, `P2P`, `RTR`).
 
-| Type             | Pattern                                                      | Example                                                               |
-| ---------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `workstream`     | `Workstreams/{WS}.md`                                        | `Workstreams/OTC.md`                                                  |
-| `stakeholder`    | `Stakeholders/{WS}/{WS} - {Full Name}.md`                    | `Stakeholders/OTC/OTC - Anna Larsen.md`                               |
-| `meeting`        | `Meetings/{WS}/{WS} - {Topic} - {YYYY-MM-DD}.md`             | `Meetings/OTC/OTC - Design Review - 2026-07-15.md`                    |
-| `decision`       | `Decisions/{WS}/Decision - {WS} - {Topic} - {YYYY-MM-DD}.md` | `Decisions/OTC/Decision - OTC - Custom BAPI approach - 2026-07-15.md` |
-| `spec`           | `Specs/{WS}/{WS} - Spec - {Object or Topic}.md`              | `Specs/OTC/OTC - Spec - Sales Order Enhancement.md`                   |
-| `development`    | `Developments/{WS}/{WS} - {ID} - {Object Name}.md`           | `Developments/OTC/OTC - E-001 - Sales Order User Exit.md`             |
-| `issue`          | `Issues/{WS}/{WS} - Issue - {Topic} - {YYYY-MM-DD}.md`       | `Issues/OTC/OTC - Issue - IDoc failures in QAS - 2026-07-20.md`       |
-| `open-questions` | `Open-Questions/{WS}.md`                                     | `Open-Questions/OTC.md`                                               |
+**Module-slug rule for legacy objects:** For objects not tied to any active workstream (typically legacy custom developments being documented after the fact), `{WS}` may instead be a canonical **module slug** from the registry (e.g. `SD`, `MM`, `FI`). Example: `Developments/SD/SD - ZSD_ORDER_CHECK.md` with `workstream: SD` in the frontmatter. Never invent a third kind of slug — workstream or module, both from `meta/entities.md`.
+
+| Type                   | Pattern                                                          | Example                                                                 |
+| ---------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `workstream`           | `Workstreams/{WS}.md`                                            | `Workstreams/OTC.md`                                                    |
+| `stakeholder`          | `Stakeholders/{WS}/{WS} - {Full Name}.md`                        | `Stakeholders/OTC/OTC - Anna Larsen.md`                                 |
+| `meeting`              | `Meetings/{WS}/{WS} - {Topic} - {YYYY-MM-DD}.md`                 | `Meetings/OTC/OTC - Design Review - 2026-07-15.md`                      |
+| `decision`             | `Decisions/{WS}/Decision - {WS} - {Topic} - {YYYY-MM-DD}.md`     | `Decisions/OTC/Decision - OTC - Custom BAPI approach - 2026-07-15.md`   |
+| `spec`                 | `Specs/{WS}/{WS} - Spec - {Object or Topic}.md`                  | `Specs/OTC/OTC - Spec - Sales Order Enhancement.md`                     |
+| `development`          | `Developments/{WS}/{WS} - {ID} - {Object Name}.md`               | `Developments/OTC/OTC - E-001 - Sales Order User Exit.md`               |
+| `development` (legacy) | `Developments/{Module}/{Module} - {Object Name}.md`              | `Developments/SD/SD - ZSD_ORDER_CHECK.md`                               |
+| `estimation`           | `Estimations/{WS}/{WS} - Estimation - {Topic} - {YYYY-MM-DD}.md` | `Estimations/OTC/OTC - Estimation - Wave 2 WRICEF list - 2026-07-20.md` |
+| `issue`                | `Issues/{WS}/{WS} - Issue - {Topic} - {YYYY-MM-DD}.md`           | `Issues/OTC/OTC - Issue - IDoc failures in QAS - 2026-07-20.md`         |
+| `open-questions`       | `Open-Questions/{WS}.md`                                         | `Open-Questions/OTC.md`                                                 |
 
 ### Zone 03 — Intelligence
 
@@ -259,6 +279,7 @@ Keep `meta/` and `raw/` exactly as-is — the ingestion pipeline code depends on
 | `pattern`         | `patterns/Pattern - {Name}.md`                    | `patterns/Pattern - IDoc error handling.md`             |
 | `lessons-learned` | `lessons-learned/Lessons - {Context} - {Year}.md` | `lessons-learned/Lessons - OTC Go-Live - 2026.md`       |
 | `gotcha`          | `gotchas/Gotcha - {Name}.md`                      | `gotchas/Gotcha - BAPI_TRANSACTION_COMMIT wait flag.md` |
+| `troubleshooting` | `troubleshooting/Troubleshooting - {Area}.md`     | `troubleshooting/Troubleshooting - IDoc failures.md`    |
 | `faq`             | `faqs/{topic}/FAQ - {Topic}.md`                   | `faqs/technical/FAQ - RFC vs OData for integrations.md` |
 
 ### Zone 04 — Internal Operations
@@ -281,16 +302,16 @@ Every page MUST use exactly this schema. No exceptions.
 title: ""
 type:
   "" # standard, architecture, landscape, workstream, stakeholder,
-  # meeting, decision, spec, development, issue, open-questions,
-  # pattern, lessons-learned, gotcha, faq,
+  # meeting, decision, spec, development, estimation, issue, open-questions,
+  # pattern, lessons-learned, gotcha, troubleshooting, faq,
   # contact, onboarding, process, runbook
 zone: "" # 01-standards, 02-workstreams, 03-intelligence, 04-internal
 status: active # active | draft | parked | archived | resolved | evergreen
 owner: "" # Person responsible
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-workstream: "" # Canonical workstream slug if applicable (OTC, P2P, ...)
-tags: []
+workstream: "" # Canonical workstream OR module slug if applicable (OTC, P2P, SD, ...)
+tags: [] # Pages generated from source code MUST carry the ai-generated tag
 source_files: [] # Raw files ingested into this page
 ---
 ```
@@ -397,17 +418,19 @@ Scan for any question asked by the client, a functional consultant, or a team me
 2. **Stakeholder** — Any people mentioned? Create/update their pages.
 3. **Meeting/Spec** — Extract as a specific artifact if it contains new information.
 4. **Decision** — Any approach, scope, or design decision? Create a decision page.
-5. **Development** — Any object built or changed? Create/update its record.
-6. **Issue** — Any defect or blocker? Create/update, link to affected developments.
-7. **Open Questions** — Update the workstream's rolling `Open-Questions/{WS}.md`.
-8. **Promote to Intelligence** — Anything reusable across 2+ contexts goes to Zone 03.
+5. **Development** — Any object built or changed? Create/update its record (including complexity and effort fields).
+6. **Estimation** — Any effort estimate given or actuals confirmed? Create/update the estimation page and sync the effort fields on the affected Development records.
+7. **Issue** — Any defect or blocker? Create/update, link to affected developments.
+8. **Open Questions** — Update the workstream's rolling `Open-Questions/{WS}.md`.
+9. **Promote to Intelligence** — Anything reusable across 2+ contexts goes to Zone 03.
 
 **For Zone 03 (Intelligence):**
 
 1. **Pattern** (if 2+ occurrences) — Create or update, add the new occurrence.
 2. **Gotcha** (if non-obvious behavior cost real time) — Create or update.
-3. **Lessons** (at phase end or go-live) — Create with metrics and specifics.
-4. Link back to every Zone 02 page where the learning was observed.
+3. **Troubleshooting guide** (if 2+ resolved Issues share a diagnostic path) — Create or update, link the source Issues.
+4. **Lessons** (at phase end or go-live) — Create with metrics and specifics.
+5. Link back to every Zone 02 page where the learning was observed.
 
 **Floating summaries are forbidden.** If you cannot link a new page upward to a parent, do not create it. Append to an existing page instead.
 
@@ -450,6 +473,23 @@ A meeting note is only useful if it results in at least one of:
 
 ---
 
+## Code Ingestion Rule (ABAP Source Files)
+
+When the ingested file is ABAP source code (program, class, function module, CDS view, enhancement — typically `.abap` or `.txt` code exports), the goal is to reconstruct the knowledge the original developer never wrote down:
+
+1. **Create/update a Spec page** — `Specs/{WS}/{WS} - Spec - {Object Name}.md`:
+   - **Functional summary** — what the object does in business terms, and the business process it serves
+   - **Technical specification** — structure, key logic, selection criteria, error handling
+   - **Impacted business processes** — which processes break if this object misbehaves
+2. **Create/update a Development record** — `Developments/{WS}/{WS} - {Object Name}.md` with object details and a Dependencies section listing every referenced object (tables, classes, function modules, CDS views, enhancements) as `[[wikilinks]]` — link them even if their pages don't exist yet.
+3. **Mark inference as inference.** The business rationale is _reconstructed from code_, not retrieved from the author. Generated pages MUST carry `status: draft` and `tags: [ai-generated]` until a human SME validates them (validation = remove the tag, set status appropriately).
+4. **Slug selection:** use the owning workstream if determinable; otherwise the module slug per the module-slug rule (`Developments/SD/…`).
+5. **Dependency extracts** (TADIR, where-used lists, CDS dependency exports dropped as CSV/text): update the Dependencies sections of the affected object pages — do not create standalone dependency dump pages.
+
+**A code drop with no extractable purpose (generated code, empty shells) is logged, not paged.**
+
+---
+
 ## Pattern Promotion Rule
 
 Whenever the same approach, error, workaround, objection, or tradeoff appears in more than one context, promote it.
@@ -460,6 +500,7 @@ Whenever the same approach, error, workaround, objection, or tradeoff appears in
 - Across 2+ developments in one workstream → `Pattern - {Name}.md` in Zone 03
 - A question asked a 2nd time → FAQ entry in Zone 03
 - Non-obvious behavior that cost someone hours → `Gotcha - {Name}.md` immediately (gotchas don't wait for a 2nd occurrence)
+- 2+ resolved Issues sharing the same diagnostic path → `Troubleshooting - {Area}.md` in Zone 03, linking every source Issue
 - Mentioned often enough that someone will ask for it again → promote
 
 **Patterns must link to:** every workstream/development where observed, applicable standards, related gotchas.
@@ -513,6 +554,8 @@ Responsible for: moving repeated learnings into Zone 03, promoting FAQs and gotc
 - Every active workstream must have an owner
 - Every important meeting must update at least one durable page
 - Every reusable learning ends up in Zone 03
+- **Every completed development gets its actual effort recorded** — estimates without actuals never become an estimation baseline
+- **Every `ai-generated` page gets SME review** — validated pages lose the tag; wrong ones get corrected, not deleted
 - Raw material with no follow-through is not "knowledge work"
 - The vault is part of the work, not admin after the work
 - **Never delete pages** — set `status: archived` instead
@@ -692,15 +735,17 @@ Multiple team members use this vault simultaneously.
 
 The ingest pipeline (`raw/inbox/` → GitHub Actions → Claude → vault) handles these formats:
 
-| Format                | Processing Path                     | Notes                                                          |
-| --------------------- | ----------------------------------- | -------------------------------------------------------------- |
-| **TXT / MD**          | Direct to Claude                    | Native. No preprocessing.                                      |
-| **VTT (transcripts)** | Strip timestamps → text             | Meeting/call transcripts.                                      |
-| **PDF (text layer)**  | Extracted text to Claude            | Large PDFs chunked by page range.                              |
-| **DOCX**              | Text extraction                     | Headings and tables preserved; formatting lost but irrelevant. |
-| **PPTX**              | Text extraction (or PDF conversion) | Speaker notes included where available.                        |
-| **XLSX**              | Sheet extraction                    | Simple tables good; formulas and macros lost.                  |
-| **PNG / JPG**         | Claude vision                       | Architecture diagrams, whiteboards, screenshots.               |
+| Format                  | Processing Path                          | Notes                                                                                           |
+| ----------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **TXT / MD**            | Direct to Claude                         | Native. No preprocessing.                                                                       |
+| **VTT (transcripts)**   | Strip timestamps → text                  | Meeting/call transcripts.                                                                       |
+| **PDF (text layer)**    | Extracted text to Claude                 | Large PDFs chunked by page range.                                                               |
+| **DOCX**                | Text extraction                          | Headings and tables preserved; formatting lost but irrelevant.                                  |
+| **PPTX**                | Text extraction (or PDF conversion)      | Speaker notes included where available.                                                         |
+| **XLSX**                | Sheet extraction                         | Simple tables good; formulas and macros lost.                                                   |
+| **PNG / JPG**           | Claude vision                            | Architecture diagrams, whiteboards, screenshots.                                                |
+| **ABAP source**         | Direct as text → Code Ingestion Rule     | `.abap`/`.txt` code exports. Generates draft FS/TS + Development record, tagged `ai-generated`. |
+| **Dependency extracts** | Direct as text/CSV → Code Ingestion Rule | TADIR, where-used, CDS dependency exports. Updates Dependencies sections of object pages.       |
 
 **Cannot handle:** audio/video (transcribe first, drop the VTT/text), password-protected files, Visio (`export to PNG first`), files over ~40 MB via the OneDrive bridge. Unprocessable files are logged and left for the curator.
 
