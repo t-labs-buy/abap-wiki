@@ -1,0 +1,32 @@
+Meeting Notes — Order-to-Cash Design Review
+Date: 2026-07-14, 10:00–11:00 CET
+Attendees: Anna Larsen (Client, SD Lead), Jonas Weber (Client, Integration Architect), Priya Nair (Our team, ABAP Senior Dev), Senthil Palanivelu (Our team, Tech Lead)
+
+Topic: Sales order enhancement for automatic credit-block release
+
+1. Background
+Anna walked us through the requirement: sales orders from key accounts (customer group Z1) are getting stuck in credit block even when the open exposure is below the insured limit. The credit team releases them manually in VKM3, which takes up to 4 hours per day. They want an automatic release job.
+
+2. Design discussion
+Two options were discussed:
+  a) Standard: configure automatic release via credit management rules in FSCM (Jonas's preference initially)
+  b) Custom: a periodic job (Z-report) that re-checks exposure against the insured limit from the ZINSURANCE table and calls BAPI_SALESORDER_CHANGE / release FM to unblock.
+
+DECISION: We go with option (b), the custom periodic job. Rationale: the insured-limit data lives in the legacy ZINSURANCE table which is maintained by an external broker feed and is NOT replicated into FSCM. Rebuilding the broker interface into FSCM was estimated at 25+ person-days and is out of scope for Wave 2. Jonas agreed after seeing the interface effort. Decision confirmed by Anna.
+
+The new object will be ZSD_CREDIT_AUTORELEASE (report + class ZCL_SD_CREDIT_RELEASE). Runs every 30 minutes via SM36. Must write an application log (BAL) entry for every released order for audit purposes — this is a hard compliance requirement from Anna.
+
+Priya raised a gotcha from the P2P workstream: BAPI_TRANSACTION_COMMIT without WAIT = 'X' caused intermittent "order still locked" errors in their batch jobs. We will use WAIT = 'X' here.
+
+3. Effort estimate
+Priya's initial estimate: 8 person-days (dev 5, test 2, documentation 1). Complexity: medium. To be confirmed in the Wave 2 estimation sheet.
+
+4. Open questions
+- Q1 (for Jonas): Should released orders trigger an IDoc to the CRM system, or is the existing change-pointer mechanism enough? Jonas to check with the CRM team by 2026-07-21.
+- Q2 (for Anna): What should happen when the broker feed is stale (ZINSURANCE older than 48h) — skip release or release with warning? Anna to align with the credit team.
+- Q3 (asked by Anna, unanswered): Can we transport the SM36 job definition, or does it need manual setup in each system? Nobody in the call was sure.
+
+5. Next steps
+- Priya drafts the technical spec by 2026-07-18.
+- Senthil adds the object to the Wave 2 WRICEF list.
+- Follow-up review scheduled for 2026-07-22.
