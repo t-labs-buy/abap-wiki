@@ -53,3 +53,23 @@ _Last updated: 2026-07-14 (skeleton — no content pages yet)_
 ## 04-internal
 
 - _(none yet)_
+
+- [[OTC]] — Order-to-Cash workstream overview
+
+- [[OTC - Design Review - 2026-07-14]] — credit-block auto-release design review
+
+- [[Decision - OTC - Custom credit auto-release job - 2026-07-14]] — custom periodic job over FSCM config
+
+- [[OTC - Spec - Credit Block Auto-Release]] — spec (draft)
+
+- [[OTC - E-001 - Credit Auto-Release Job]] — ZSD_CREDIT_AUTORELEASE development
+
+- [[OTC - Estimation - Credit Auto-Release Job - 2026-07-14]] — 8 PD initial estimate
+
+- [[Gotcha - BAPI_TRANSACTION_COMMIT wait flag]] — WAIT='X' avoids 'order still locked'
+
+- [[Pattern - BAPI_TRANSACTION_COMMIT WAIT in batch jobs]] — seen in P2P and OTC
+
+- [[FAQ - Credit Auto-Release Integration]] — technical open questions
+
+- [[FAQ - Transporting Background Jobs]] — process & transport open question
