@@ -1,0 +1,5 @@
+# Obsidian per-user session state — changes constantly, never share
+.obsidian/workspace.json
+
+# OS noise
+.DS_Store
