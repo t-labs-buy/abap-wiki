@@ -1,0 +1,85 @@
+In SAP ABAP, consistent naming conventions are essential for code readability and for separating custom development from standard SAP software. By system design, all custom objects must begin with **Z** or **Y** (or a registered partner namespace like `/COMPANY/`) to prevent them from being overwritten during system upgrades, as letters A through S are reserved by SAP.
+
+While exact standards vary slightly between different company guidelines, the following conventions represent the widely accepted industry best practices.
+
+## Data Dictionary (DDIC) Objects
+
+When creating global objects in the ABAP Dictionary (SE11), use descriptive abbreviations after the Z or Y prefix.
+
+| Object Type | Prefix | Example | Description |
+| --- | --- | --- | --- |
+| **Database Table** | `Zt_` or `Z` | `Zt_CUSTOMERS` | Transparent table storing transaction or master data. |
+| **Structure** | `Zs_` | `Zs_ORDER_DETAILS` | Global structure used for data passing or interface definitions. |
+| **Table Type** | `Ztt_` | `Ztt_ORDER_DETAILS` | Global table type for defining internal tables. |
+| **Data Element** | `Zde_` | `Zde_CUST_ID` | Elementary data type defining semantic properties. |
+| **Domain** | `Zd_` | `Zd_STATUS_CODE` | Technical domain defining data types and value ranges. |
+| **Database View** | `Zv_` | `Zv_ACTIVE_USERS` | View combining data from multiple tables. |
+| **Search Help** | `Zsh_` | `Zsh_CUST_FINDER` | Input help (F4) object. |
+
+---
+
+## Variables and Data Types
+
+For variables inside programs, classes, or function modules, combine a **scope prefix** (where the variable lives) with a **type prefix** (what kind of data it holds).
+
+### 1. Scope Prefixes
+
+* **`l`** – Local (exists only inside a method, form, or function)
+* **`g`** – Global (accessible throughout the entire program or class)
+* **`s`** – Static (retains its value between calls)
+* **`c`** – Constant (fixed value that cannot be changed)
+
+### 2. Type Prefixes
+
+* **`v_`** – Elementary variable (string, integer, boolean, date)
+* **`s_`** – Structure (a single work area with multiple fields)
+* **`t_`** – Internal table (a collection of rows/structures)
+* **`r_`** – Reference variable (pointer to an object or data)
+* **`o_`** – Object instance (class instantiation)
+
+**Common Examples:**
+
+* **`lv_amount`** – A local variable holding an elementary value.
+* **`ls_customer`** – A local structure holding one record of customer data.
+* **`lt_orders`** – A local internal table holding a list of orders.
+* **`gv_company_code`** – A global elementary variable.
+* **`co_max_retries`** – A constant value.
+
+---
+
+## Object-Oriented ABAP (Classes & Interfaces)
+
+Object-oriented programming (OOP) in ABAP uses specific prefixes to identify the role of classes, interfaces, and their parameters.
+
+### Repository Level
+
+* **Classes:** Start with **`ZCL_`** (e.g., `ZCL_INVOICE_PROCESSOR`)
+* **Interfaces:** Start with **`ZIF_`** (e.g., `ZIF_PAYMENT_GATEWAY`)
+* **Exception Classes:** Start with **`ZCX_`** (e.g., `ZCX_AUTH_ERROR`)
+
+### Method Parameters
+
+When defining methods within a class, clearly indicate the direction of the data passing through the parameters:
+
+| Parameter Type | Prefix | Example | Purpose |
+| --- | --- | --- | --- |
+| **Importing** | `iv_`, `is_`, `it_`, `io_` | `iv_user_id` | Read-only input passed into the method. |
+| **Exporting** | `ev_`, `es_`, `et_`, `eo_` | `es_user_profile` | Output returned to the caller. |
+| **Changing** | `cv_`, `cs_`, `ct_`, `co_` | `ct_error_logs` | Input that gets modified and returned. |
+| **Returning** | `rv_`, `rs_`, `rt_`, `ro_` | `rv_is_valid` | The single functional return value of a method. |
+
+*Note: For class attributes (member variables), use **`mv_`**, **`ms_`**, or **`mt_`** to indicate "member" scope, which helps distinguish them from local variables (`lv_`) inside method implementations.*
+
+---
+
+## Programs and Function Modules
+
+For legacy procedural code and repository programs, use these standard identifiers:
+
+* **Executable Programs (Reports):** `Z_` or `ZR_` (e.g., `ZR_SALES_REPORT`)
+* **Module Pools (Screen Dialogs):** `ZSAPM_` or `ZM_` (e.g., `ZSAPM_INVENTORY`)
+* **Includes:** `ZINC_` or use a suffix like `_TOP` (for global data), `_F01` (for subroutines), and `_O01` (for PBO modules).
+* **Function Groups:** `ZFG_` (e.g., `ZFG_USER_ADMIN`)
+* **Function Modules:** `ZFM_` or `Z_` (e.g., `ZFM_GET_USER_DETAILS`)
+
+Adhering to these conventions makes your ABAP code self-documenting. When another developer reads `lt_materials` or `iv_status`, they instantly know it is a local internal table or an imported variable without needing to search for its data definition.
