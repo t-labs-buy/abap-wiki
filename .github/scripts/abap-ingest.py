@@ -23,6 +23,31 @@ VALID_ZONE_PREFIXES = (
     "meta/",
 )
 
+# Maps a page's path prefix to the index heading it belongs under.
+# Order matters: it doubles as the priority order when a wikilink target
+# matches pages in more than one folder (e.g. Workstreams/OTC.md vs
+# Open-Questions/OTC.md).
+INDEX_SECTIONS = (
+    ("01-standards/coding/",           "## 01-standards",    "### Coding"),
+    ("01-standards/architecture/",     "## 01-standards",    "### Architecture"),
+    ("01-standards/landscape/",        "## 01-standards",    "### Landscape"),
+    ("02-workstreams/Workstreams/",    "## 02-workstreams",  "### Workstreams"),
+    ("02-workstreams/Stakeholders/",   "## 02-workstreams",  "### Stakeholders"),
+    ("02-workstreams/Meetings/",       "## 02-workstreams",  "### Meetings"),
+    ("02-workstreams/Decisions/",      "## 02-workstreams",  "### Recent Decisions"),
+    ("02-workstreams/Specs/",          "## 02-workstreams",  "### Specs"),
+    ("02-workstreams/Developments/",   "## 02-workstreams",  "### Developments"),
+    ("02-workstreams/Estimations/",    "## 02-workstreams",  "### Estimations"),
+    ("02-workstreams/Issues/",         "## 02-workstreams",  "### Issues"),
+    ("02-workstreams/Open-Questions/", "## 02-workstreams",  "### Open Questions"),
+    ("03-intelligence/patterns/",        "## 03-intelligence", "### Patterns"),
+    ("03-intelligence/lessons-learned/", "## 03-intelligence", "### Lessons Learned"),
+    ("03-intelligence/gotchas/",         "## 03-intelligence", "### Gotchas"),
+    ("03-intelligence/troubleshooting/", "## 03-intelligence", "### Troubleshooting Guides"),
+    ("03-intelligence/faqs/",            "## 03-intelligence", "### FAQs"),
+    ("04-internal/",                   "## 04-internal",     None),
+)
+
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY")
 if not ANTHROPIC_KEY:
     print("ERROR: ANTHROPIC_API_KEY not set")
@@ -605,6 +630,128 @@ def run_ingest_agent(filename, content):
 
     return merge_results(results)
 
+def wikilink_target(text):
+    m = re.search(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]", text)
+    return m.group(1).strip() if m else None
+
+def scan_vault_pages():
+    pages = []
+    for zone_dir in ("01-standards", "02-workstreams", "03-intelligence", "04-internal"):
+        for root, dirs, files in os.walk(zone_dir):
+            for f in files:
+                if f.endswith(".md"):
+                    pages.append(os.path.join(root, f).replace("\\", "/"))
+    return pages
+
+def find_page_path(target, touched_paths):
+    if not target:
+        return None
+    candidates = [p.replace("\\", "/") for p in touched_paths] + scan_vault_pages()
+    if "/" in target:
+        for p in candidates:
+            if p.endswith("/" + target + ".md") or p == target + ".md":
+                return p
+    matches = [p for p in candidates if os.path.basename(p) == target + ".md"]
+    if not matches:
+        return None
+    for prefix, _, _ in INDEX_SECTIONS:
+        for p in matches:
+            if p.startswith(prefix):
+                return p
+    return matches[0]
+
+def section_for_path(path):
+    for prefix, zone_heading, section_heading in INDEX_SECTIONS:
+        if path.startswith(prefix):
+            return zone_heading, section_heading
+    return None, None
+
+def find_block(lines, heading, start=0, end=None):
+    """Return (heading_index, block_end) for a heading, searching lines[start:end].
+    block_end is the index of the next heading of same-or-higher level, or end."""
+    if end is None:
+        end = len(lines)
+    level = heading.split(" ")[0]  # "##" or "###"
+    for i in range(start, end):
+        if lines[i].strip() == heading:
+            for j in range(i + 1, end):
+                stripped = lines[j].strip()
+                if stripped.startswith("#") and len(stripped.split(" ")[0]) <= len(level):
+                    return i, j
+            return i, end
+    return None, None
+
+def insert_entry_in_section(lines, entry, zone_heading, section_heading):
+    zone_start, zone_end = find_block(lines, zone_heading)
+    if zone_start is None:
+        lines.extend(["", zone_heading, ""])
+        zone_start, zone_end = len(lines) - 2, len(lines)
+
+    if section_heading:
+        sec_start, sec_end = find_block(lines, section_heading, zone_start + 1, zone_end)
+        if sec_start is None:
+            insert_at = zone_end
+            while insert_at > zone_start + 1 and not lines[insert_at - 1].strip():
+                insert_at -= 1
+            lines[insert_at:insert_at] = ["", section_heading, ""]
+            sec_start, sec_end = insert_at + 1, insert_at + 3
+    else:
+        sec_start, sec_end = zone_start, zone_end
+
+    # drop the "(none yet)" placeholder now that the section has a real entry
+    for i in range(sec_end - 1, sec_start, -1):
+        if lines[i].strip().startswith("- _(none"):
+            del lines[i]
+            sec_end -= 1
+
+    insert_at = sec_start + 1
+    for i in range(sec_start + 1, sec_end):
+        if lines[i].strip().startswith("- "):
+            insert_at = i + 1
+    if insert_at == sec_start + 1 and insert_at < sec_end and not lines[insert_at].strip():
+        insert_at += 1
+    lines.insert(insert_at, entry)
+
+def update_index(index_entries, touched_paths):
+    try:
+        with open(INDEX_MD, "r") as f:
+            lines = f.read().splitlines()
+    except FileNotFoundError:
+        lines = ["# Vault Index", ""]
+
+    today = datetime.date.today().isoformat()
+    for i, line in enumerate(lines):
+        if line.startswith("_Last updated:"):
+            lines[i] = f"_Last updated: {today}_"
+            break
+
+    for entry in index_entries:
+        entry = entry.strip()
+        if not entry:
+            continue
+        target = wikilink_target(entry)
+
+        # same page already indexed → refresh that line instead of duplicating
+        replaced = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith("- ") and target and wikilink_target(line) == target:
+                lines[i] = entry
+                replaced = True
+                break
+        if replaced:
+            continue
+
+        path = find_page_path(target, touched_paths)
+        zone_heading, section_heading = section_for_path(path) if path else (None, None)
+        if zone_heading is None:
+            print(f"  ⚠ Index entry has no matching vault page, appending at end: {entry[:80]}")
+            lines.extend(["", entry])
+            continue
+        insert_entry_in_section(lines, entry, zone_heading, section_heading)
+
+    with open(INDEX_MD, "w") as f:
+        f.write("\n".join(lines) + "\n")
+
 def apply_vault_changes(result, filename, log_only=False):
     if not result:
         return False
@@ -629,14 +776,9 @@ def apply_vault_changes(result, filename, log_only=False):
 
     if result.get("index_entries"):
         try:
-            with open(INDEX_MD, "r") as f:
-                idx = f.read()
-            for entry in result["index_entries"]:
-                entry = entry.strip()
-                if entry and entry not in idx:
-                    idx += f"\n{entry}\n"
-            with open(INDEX_MD, "w") as f:
-                f.write(idx)
+            touched = [i.get("path", "").replace("\\", "/") for i in
+                       result.get("updates", []) + result.get("creates", [])]
+            update_index(result["index_entries"], touched)
         except Exception as e:
             print(f"  ⚠ Index update error: {e}")
 
