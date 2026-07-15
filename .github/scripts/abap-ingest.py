@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import os
 import json
+import base64
 import hashlib
 import datetime
 import re
 import shutil
 import subprocess
+import time
 import anthropic
 
 INBOX_MD      = "meta/inbox.md"
@@ -57,6 +59,16 @@ SINGLE_PASS_LIMIT = 150_000
 CHUNK_SIZE        = 120_000
 CHUNK_OVERLAP     =  10_000
 
+MODEL             = "claude-opus-4-8"
+MAX_OUTPUT_TOKENS = 64_000
+API_RETRIES       = 3
+
+# Prompt context budgets (characters)
+PAGES_FULL_BUDGET   = 150_000  # full page content shown to Claude (updates need this)
+PAGE_PREVIEW_CHARS  = 500      # fallback preview once the full budget is spent
+INDEX_BUDGET        = 10_000
+ENTITIES_BUDGET     = 8_000
+
 def git_pull():
     try:
         result = subprocess.run(
@@ -81,17 +93,26 @@ def get_payload():
         print(f"Could not read event payload: {e}")
     return None
 
-IMAGE_TYPES = {"png", "jpg", "jpeg", "gif", "webp", "bmp", "tiff"}
+# Image formats Claude vision accepts, mapped to their API media type.
+# bmp/tiff are not supported by the API — they fall through to "unprocessable".
+IMAGE_MEDIA_TYPES = {
+    "png":  "image/png",
+    "jpg":  "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif":  "image/gif",
+    "webp": "image/webp",
+}
+IMAGE_MAX_BYTES = 4_500_000  # API limit is 5MB per image; leave headroom
 AUDIO_VIDEO_TYPES = {
     "mp3", "wav", "m4a", "aac", "ogg", "flac", "wma", "opus",
     "mp4", "mov", "avi", "mkv", "webm", "wmv", "m4v", "flv",
 }
+# Legacy binary Office formats python-docx/python-pptx cannot read.
+LEGACY_OFFICE_TYPES = {"doc", "ppt"}
 BINARY_EXTRACTORS = {
     "pdf":  "extract_pdf",
     "pptx": "extract_pptx",
-    "ppt":  "extract_pptx",
     "docx": "extract_docx",
-    "doc":  "extract_docx",
     "xlsx": "extract_xlsx",
     "xls":  "extract_xlsx",
 }
@@ -102,6 +123,10 @@ def get_file_hash(filepath):
             return hashlib.md5(f.read()).hexdigest()
     except Exception:
         return None
+
+def inbox_safe(filename):
+    # "|" would corrupt the markdown table in meta/inbox.md
+    return filename.replace("|", "¦")
 
 def get_processed_records():
     records = {}
@@ -119,6 +144,7 @@ def get_processed_records():
 
 def is_already_processed(filename, filepath):
     records = get_processed_records()
+    filename = inbox_safe(filename)
     if filename not in records:
         return False
     stored_hash = records[filename]
@@ -138,14 +164,40 @@ def scan_inbox_for_unprocessed():
         if f.startswith(".") or f == "README.md":
             continue
         filepath = os.path.join(RAW_INBOX, f)
-        if f not in records:
+        key = inbox_safe(f)
+        if key not in records:
             result.append(f)
         else:
-            stored_hash = records[f]
+            stored_hash = records[key]
             current_hash = get_file_hash(filepath)
             if stored_hash and current_hash and stored_hash != current_hash:
                 result.append(f)
     return result
+
+def strip_vtt(content):
+    """Strip WEBVTT headers, cue numbers, timestamps, and NOTE blocks."""
+    lines = []
+    in_note = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(("WEBVTT", "NOTE", "STYLE", "REGION")):
+            in_note = stripped.startswith(("NOTE", "STYLE", "REGION"))
+            continue
+        if not stripped:
+            in_note = False
+            continue
+        if in_note:
+            continue
+        if "-->" in stripped:
+            continue
+        if stripped.isdigit():
+            continue
+        # drop inline cue tags like <v Speaker Name> but keep the speaker
+        stripped = re.sub(r"<v\s+([^>]+)>", r"\1: ", stripped)
+        stripped = re.sub(r"</?[^>]+>", "", stripped)
+        if stripped and (not lines or lines[-1] != stripped):
+            lines.append(stripped)
+    return "\n".join(lines)
 
 def read_inbox_file(filename):
     path = os.path.join(RAW_INBOX, filename)
@@ -155,19 +207,15 @@ def read_inbox_file(filename):
 
     ext = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
 
-    if ext in IMAGE_TYPES:
-        print(f"  ↷ Image file — logged, not extracted")
-        return None
-
-    if ext in AUDIO_VIDEO_TYPES:
-        print(f"  ↷ Audio/video file — transcription required")
-        return f"[AUDIO/VIDEO: {filename} — upload transcript]"
-
     if ext in BINARY_EXTRACTORS:
         extractor = globals()[BINARY_EXTRACTORS[ext]]
         return extractor(path, filename)
 
-    return read_as_text(path, filename)
+    content = read_as_text(path, filename)
+    if content and ext == "vtt":
+        content = strip_vtt(content)
+        print(f"  ✓ Stripped VTT timestamps — {len(content)} chars of transcript text")
+    return content
 
 def read_as_text(path, filename):
     try:
@@ -216,11 +264,14 @@ def extract_pdf(path, filename):
         if content:
             print(f"  ✓ Extracted {len(pdf.pages)} PDF pages, {len(content)} chars")
             return content
-        return f"[PDF: {filename} — {len(pdf.pages)} pages, no extractable text]"
+        print(f"  ⚠ PDF has no extractable text ({len(pdf.pages)} pages) — needs OCR or manual handling")
+        return None
     except ImportError:
-        return f"[PDF: pdfplumber not installed]"
+        print("  ⚠ pdfplumber not installed — cannot extract PDF")
+        return None
     except Exception as e:
-        return f"[PDF extraction failed: {e}]"
+        print(f"  ⚠ PDF extraction failed: {e}")
+        return None
 
 def extract_pptx(path, filename):
     try:
@@ -244,17 +295,24 @@ def extract_pptx(path, filename):
                         texts.append(text)
                 elif hasattr(shape, "text") and shape.text.strip():
                     texts.append(shape.text.strip())
+            if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
+                notes = slide.notes_slide.notes_text_frame.text.strip()
+                if notes:
+                    texts.append(f"[Speaker notes]\n{notes}")
             if texts:
                 slides.append(f"[Slide {i+1}]\n" + "\n".join(texts))
         content = "\n\n".join(slides)
         if content:
             print(f"  ✓ Extracted {len(prs.slides)} PPTX slides, {len(content)} chars")
             return content
-        return f"[PPTX: {filename} — {len(prs.slides)} slides, no extractable text]"
+        print(f"  ⚠ PPTX has no extractable text ({len(prs.slides)} slides)")
+        return None
     except ImportError:
-        return f"[PPTX: python-pptx not installed]"
+        print("  ⚠ python-pptx not installed — cannot extract PPTX")
+        return None
     except Exception as e:
-        return f"[PPTX extraction failed: {e}]"
+        print(f"  ⚠ PPTX extraction failed: {e}")
+        return None
 
 def extract_docx(path, filename):
     try:
@@ -273,11 +331,14 @@ def extract_docx(path, filename):
         if content:
             print(f"  ✓ Extracted {len(content)} chars from DOCX")
             return content
-        return f"[DOCX: {filename} — no extractable text]"
+        print("  ⚠ DOCX has no extractable text")
+        return None
     except ImportError:
-        return f"[DOCX: python-docx not installed]"
+        print("  ⚠ python-docx not installed — cannot extract DOCX")
+        return None
     except Exception as e:
-        return f"[DOCX extraction failed: {e}]"
+        print(f"  ⚠ DOCX extraction failed: {e}")
+        return None
 
 def extract_xlsx(path, filename):
     try:
@@ -297,11 +358,14 @@ def extract_xlsx(path, filename):
         if content:
             print(f"  ✓ Extracted {len(wb.sheetnames)} XLSX sheets, {len(content)} chars")
             return content
-        return f"[XLSX: {filename} — no extractable data]"
+        print("  ⚠ XLSX has no extractable data")
+        return None
     except ImportError:
-        return f"[XLSX: openpyxl not installed]"
+        print("  ⚠ openpyxl not installed — cannot extract XLSX")
+        return None
     except Exception as e:
-        return f"[XLSX extraction failed: {e}]"
+        print(f"  ⚠ XLSX extraction failed: {e}")
+        return None
 
 def move_to_processed(filename):
     os.makedirs(RAW_PROCESSED, exist_ok=True)
@@ -317,8 +381,13 @@ def is_valid_vault_path(path):
     if not path or not path.strip():
         return False
     path = path.replace("\\", "/").strip()
+    if os.path.isabs(path):
+        return False
+    normalized = os.path.normpath(path).replace("\\", "/")
+    if normalized.startswith("..") or "/../" in normalized:
+        return False
     for prefix in VALID_ZONE_PREFIXES:
-        if path.startswith(prefix):
+        if normalized.startswith(prefix):
             return True
     return False
 
@@ -341,17 +410,34 @@ def build_prompt_context():
     except FileNotFoundError:
         entities = ""
 
-    existing_pages = ""
+    # Every content page in the vault, with FULL content up to the budget.
+    # Claude may only UPDATE a page it has seen in full — an update from a
+    # truncated preview would silently destroy the unseen part of the page.
+    page_paths = []
     for zone_dir in ["01-standards", "02-workstreams", "03-intelligence", "04-internal"]:
         if os.path.isdir(zone_dir):
             for root, dirs, files in os.walk(zone_dir):
                 for f in sorted(files):
                     if f.endswith(".md") and not f.startswith("_") and f != "README.md":
-                        try:
-                            with open(os.path.join(root, f), "r") as fh:
-                                existing_pages += f"\n### {f}\n{fh.read()[:1000]}\n"
-                        except Exception:
-                            pass
+                        page_paths.append(os.path.join(root, f).replace("\\", "/"))
+
+    existing_pages = "## Complete page listing\n" + "\n".join(f"- {p}" for p in page_paths) + "\n"
+    remaining = PAGES_FULL_BUDGET
+    previews = []
+    for p in page_paths:
+        try:
+            with open(p, "r") as fh:
+                content = fh.read()
+        except Exception:
+            continue
+        if len(content) <= remaining:
+            existing_pages += f"\n### FULL: {p}\n{content}\n"
+            remaining -= len(content)
+        else:
+            previews.append(f"\n### PREVIEW ONLY (do not update): {p}\n{content[:PAGE_PREVIEW_CHARS]}\n")
+    if previews:
+        print(f"  ⚠ Page-context budget exhausted — {len(previews)} page(s) sent as preview only")
+        existing_pages += "".join(previews)
 
     return schema, index, entities, existing_pages
 
@@ -361,8 +447,56 @@ def extract_response_text(response):
             return block.text
     return ""
 
+def call_api_with_retry(client, messages):
+    """One streamed API call with backoff on retryable errors.
+    Returns the final Message, or None after exhausting retries / on truncation."""
+    last_err = None
+    for attempt in range(API_RETRIES):
+        if attempt:
+            wait = 15 * (2 ** attempt)
+            print(f"  ⚠ API error ({last_err}) — retrying in {wait}s ({attempt + 1}/{API_RETRIES})")
+            time.sleep(wait)
+        try:
+            with client.messages.stream(
+                model=MODEL,
+                max_tokens=MAX_OUTPUT_TOKENS,
+                thinking={"type": "adaptive"},
+                messages=messages,
+            ) as stream:
+                response = stream.get_final_message()
+            if response.stop_reason == "max_tokens":
+                print(f"  ⚠ Response truncated at {MAX_OUTPUT_TOKENS} output tokens — treating as failure")
+                return None
+            return response
+        except anthropic.RateLimitError as e:
+            last_err = e
+        except anthropic.APIStatusError as e:
+            if e.status_code < 500:
+                print(f"  ⚠ Non-retryable API error {e.status_code}: {e.message}")
+                return None
+            last_err = e
+        except anthropic.APIConnectionError as e:
+            last_err = e
+    print(f"  ⚠ API failed after {API_RETRIES} attempts: {last_err}")
+    return None
+
+def parse_result_json(text):
+    """Extract and parse the JSON object from a response. Returns (result, error)."""
+    code_match = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', text)
+    if code_match:
+        json_str = code_match.group(1)
+    else:
+        json_match = re.search(r'\{[\s\S]*\}', text)
+        if not json_match:
+            return None, "no JSON object found in the response"
+        json_str = json_match.group()
+    try:
+        return json.loads(json_str), None
+    except json.JSONDecodeError as e:
+        return None, str(e)
+
 def call_claude(filename, content_chunk, schema, index, entities, existing_pages,
-                chunk_info="", is_continuation=False):
+                chunk_info="", is_continuation=False, image_path=None, image_media_type=None):
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
     continuation_note = ""
@@ -378,16 +512,16 @@ def call_claude(filename, content_chunk, schema, index, entities, existing_pages
     prompt = f"""You are the ABAP Vault AI, the disciplined librarian maintaining the ABAP project's knowledge vault.
 
 ## Vault Constitution (CLAUDE.md)
-{schema[:6000]}
+{schema}
 
 ## Current Index
-{index[:2000]}
+{index[:INDEX_BUDGET]}
 
 ## Entity Registry (canonical names — meta/entities.md)
-{entities[:3000]}
+{entities[:ENTITIES_BUDGET]}
 
 ## Existing Pages (do not duplicate these)
-{existing_pages[:5000]}
+{existing_pages}
 
 ## File to Ingest
 Filename: `{filename}`{chunk_info}
@@ -521,6 +655,18 @@ CRITICAL RULES — follow these exactly or the vault breaks:
     (estimated vs actual). When actuals appear in a document, update BOTH the
     estimation page and the effort fields of the affected Development records.
 
+15. UPDATE SEMANTICS: When you UPDATE a page, return its COMPLETE content —
+    every existing section plus your changes. Never drop or shorten sections
+    you are not changing. Preserve the page's original `created:` date and set
+    `updated: {today}`. Only update pages whose FULL content appears above
+    (marked "FULL:"). Pages marked "PREVIEW ONLY" must NOT be updated — if
+    one needs new information, note it in the log_entry instead.
+
+16. NO DURABLE CONTENT: If the document contains no durable knowledge
+    (logistics chatter, empty shells, generated code with no purpose), return
+    empty "updates" and "creates" arrays with only a log_entry explaining why.
+    Do not invent pages to feel useful.
+
 Job:
 1. Triage the document per the constitution (workstream-specific → Zone 02,
    reusable learning → Zone 03, standard/landscape → Zone 01, team ops → Zone 04)
@@ -530,41 +676,70 @@ Job:
 5. Add index entries
 6. Write log entry
 
-Respond ONLY with valid JSON — no markdown, no explanation, just the JSON object:
+Respond ONLY with valid JSON — no markdown fences, no explanation, just the JSON object:
 {{
   "updates": [{{"path": "zone-folder/filename.md", "content": "full markdown with frontmatter"}}],
   "creates": [{{"path": "zone-folder/filename.md", "content": "full markdown with frontmatter"}}],
   "index_entries": ["- [[Page]] — description"],
   "log_entry": "- {today}: Ingested {filename}. Updated X. Created Y."
+}}
+
+Minimal example of a valid response (shape only — your content will differ):
+{{
+  "updates": [{{"path": "02-workstreams/Workstreams/OTC.md", "content": "---\\ntitle: \\"OTC\\"\\n...full page...\\n"}}],
+  "creates": [],
+  "index_entries": [],
+  "log_entry": "- {today}: Ingested {filename}. Updated [[OTC]] with wave 2 scope."
 }}"""
 
-    response = client.messages.create(
-        model="claude-opus-4-8",
-        max_tokens=16000,
-        thinking={"type": "adaptive"},
-        messages=[{"role": "user", "content": prompt}]
-    )
+    if image_path:
+        with open(image_path, "rb") as f:
+            image_data = base64.standard_b64encode(f.read()).decode("utf-8")
+        user_content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": image_media_type,
+                    "data": image_data,
+                },
+            },
+            {"type": "text", "text": prompt},
+        ]
+    else:
+        user_content = prompt
+
+    messages = [{"role": "user", "content": user_content}]
+
+    response = call_api_with_retry(client, messages)
+    if response is None:
+        return None
 
     text = extract_response_text(response)
+    result, parse_err = parse_result_json(text)
+    if result is not None:
+        return result
 
-    # Try to extract JSON from code block first, then raw JSON
-    code_match = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', text)
-    if code_match:
-        json_str = code_match.group(1)
-    else:
-        json_match = re.search(r'\{[\s\S]*\}', text)
-        if not json_match:
-            print(f"  ⚠ No JSON in response")
-            print(f"  Response preview: {text[:200]}")
-            return None
-        json_str = json_match.group()
-
-    try:
-        return json.loads(json_str)
-    except json.JSONDecodeError as e:
-        print(f"  ⚠ JSON parse error: {e}")
-        print(f"  JSON preview: {json_str[:200]}")
+    # One retry with the parse error fed back
+    print(f"  ⚠ JSON parse error ({parse_err}) — retrying once with error feedback")
+    retry_messages = messages + [
+        {"role": "assistant", "content": text or "(empty response)"},
+        {
+            "role": "user",
+            "content": (
+                f"Your previous response could not be parsed as JSON: {parse_err}. "
+                "Respond again with ONLY the complete, valid JSON object — "
+                "no markdown fences, no commentary, properly escaped strings."
+            ),
+        },
+    ]
+    response = call_api_with_retry(client, retry_messages)
+    if response is None:
         return None
+    result, parse_err = parse_result_json(extract_response_text(response))
+    if result is None:
+        print(f"  ⚠ JSON parse failed again: {parse_err}")
+    return result
 
 def merge_results(results):
     merged = {"updates": [], "creates": [], "index_entries": [], "log_entry": ""}
@@ -617,7 +792,10 @@ def run_ingest_agent(filename, content):
         )
         if result:
             results.append(result)
-            apply_vault_changes(result, filename, log_only=(i < len(chunks) - 1))
+            # log_only=True for EVERY chunk: pages are written so later chunks
+            # see them, but the log/inbox entries are written exactly once —
+            # by process_file applying the merged result.
+            apply_vault_changes(result, filename, log_only=True)
             try:
                 with open(INDEX_MD, "r") as f:
                     index = f.read()
@@ -794,9 +972,42 @@ def apply_vault_changes(result, filename, log_only=False):
     updated = ", ".join(i["path"] for i in result.get("updates", []))
     created = ", ".join(i["path"] for i in result.get("creates", []))
     with open(INBOX_MD, "a") as f:
-        f.write(f"| {filename} | {today} | {file_hash} | {updated or '—'} | {created or '—'} |\n")
+        f.write(f"| {inbox_safe(filename)} | {today} | {file_hash} | {updated or '—'} | {created or '—'} |\n")
 
     return changed
+
+def log_unprocessable(filename, reason):
+    """Log a file we cannot process and leave it in the inbox for the curator."""
+    print(f"  ⚠ Unprocessable — left in inbox for the curator: {reason}")
+    today = datetime.date.today().isoformat()
+    with open(LOG_MD, "a") as f:
+        f.write(f"\n- {today}: Could not ingest `{filename}` — {reason}. File left in raw/inbox/ for the curator.\n")
+
+def process_image_file(filename, filepath, ext):
+    if ext not in IMAGE_MEDIA_TYPES:
+        log_unprocessable(filename, f"unsupported image format .{ext} — convert to PNG or JPG")
+        return
+    if os.path.getsize(filepath) > IMAGE_MAX_BYTES:
+        log_unprocessable(filename, "image exceeds the 5MB API limit — resize and re-drop")
+        return
+
+    print(f"  Image — running ingest agent with vision...")
+    schema, index, entities, existing_pages = build_prompt_context()
+    placeholder = (
+        f"[IMAGE FILE: {filename} — the image is attached above. It is likely an "
+        "architecture diagram, whiteboard photo, or screenshot. Extract the durable "
+        "knowledge it shows.]"
+    )
+    result = call_claude(
+        filename, placeholder, schema, index, entities, existing_pages,
+        image_path=filepath, image_media_type=IMAGE_MEDIA_TYPES[ext],
+    )
+    if not result:
+        log_unprocessable(filename, "ingest agent failed on image (see run log)")
+        return
+    apply_vault_changes(result, filename)
+    move_to_processed(filename)
+    print(f"  ✓ Done: {filename}")
 
 def process_file(filename):
     print(f"\nProcessing: {filename}")
@@ -808,29 +1019,35 @@ def process_file(filename):
 
     ext = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
 
-    if ext in IMAGE_TYPES:
-        print(f"  Image — logged.")
-        file_hash = get_file_hash(filepath) or "—"
-        with open(INBOX_MD, "a") as f:
-            f.write(f"| {filename} | {datetime.date.today()} | {file_hash} | — | — |\n")
-        move_to_processed(filename)
+    if ext in IMAGE_MEDIA_TYPES or ext in ("bmp", "tiff"):
+        process_image_file(filename, filepath, ext)
         return
 
     if ext in AUDIO_VIDEO_TYPES:
         print(f"  Audio/video — transcription required.")
         file_hash = get_file_hash(filepath) or "—"
         with open(INBOX_MD, "a") as f:
-            f.write(f"| {filename} | {datetime.date.today()} | {file_hash} | — | TRANSCRIPTION NEEDED |\n")
+            f.write(f"| {inbox_safe(filename)} | {datetime.date.today()} | {file_hash} | — | TRANSCRIPTION NEEDED |\n")
         move_to_processed(filename)
+        return
+
+    if ext in LEGACY_OFFICE_TYPES:
+        log_unprocessable(filename, f"legacy .{ext} format — re-save as .{ext}x or export to PDF and re-drop")
         return
 
     content = read_inbox_file(filename)
     if not content:
-        print(f"  ⚠ No content extracted — skipping.")
+        log_unprocessable(filename, "no text could be extracted (see run log for details)")
         return
 
     print(f"  Running ingest agent...")
     result = run_ingest_agent(filename, content)
+    if not result:
+        # Do NOT move the file: leaving it in the inbox means the next push or
+        # the weekly sweep retries it. Moving it with no inbox record would
+        # silently lose it forever.
+        log_unprocessable(filename, "ingest agent failed after retries (see run log)")
+        return
     apply_vault_changes(result, filename)
     move_to_processed(filename)
     print(f"  ✓ Done: {filename}")
