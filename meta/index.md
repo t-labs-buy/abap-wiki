@@ -30,6 +30,10 @@ _Last updated: 2026-07-15_
 - [[OTC - Jonas Weber]] — OTC
 - [[OTC - Priya Nair]] — OTC
 - [[OTC - Senthil Palanivelu]] — OTC
+- [[OTC - Andreas Kvarnö]] — OTC (Master data, CGI)
+- [[OTC - Madeleine Jacobsson]] — OTC (Order-to-Cash, ES)
+- [[OTC - Tomas Kuniholm]] — OTC (IT, ES)
+- [[OTC - Hashini]] — OTC (Developer, CR044)
 
 ### Meetings
 
@@ -38,14 +42,17 @@ _Last updated: 2026-07-15_
 ### Recent Decisions
 
 - [[Decision - OTC - Custom credit auto-release job - 2026-07-14]] — custom periodic job over FSCM config
+- [[Decision - OTC - Address type removed from validation criteria - 2026-01-29]] — v3.0: only relevant address types loaded to ZSD_ADR_VLD
 
 ### Specs
 
 - [[OTC - Spec - Credit Block Auto-Release]] — spec (draft)
+- [[OTC - Spec - BP Address Validation]] — BP address validation against Geposit reference table ZSD_ADR_VLD (draft)
 
 ### Developments
 
 - [[OTC - E-001 - Credit Auto-Release Job]] — ZSD_CREDIT_AUTORELEASE development
+- [[OTC - CR045 - BP Address Validation]] — BP address validation enhancement + detection report (draft)
 
 ### Estimations
 

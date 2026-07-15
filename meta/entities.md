@@ -36,8 +36,12 @@ The single source of truth for names. Before creating **any** new workstream fol
 
 ## Vendors & Partners
 
-| Canonical Slug | Display Name | Aliases         | Status |
-| -------------- | ------------ | --------------- | ------ |
-| SAP            | SAP SE       | `sap`, `sap se` | active |
+| Canonical Slug | Display Name | Aliases              | Status |
+| -------------- | ------------ | -------------------- | ------ |
+| SAP            | SAP SE       | `sap`, `sap se`      | active |
+| Sonepar        | Sonepar      | `sonepar`            | active |
+| Geposit        | Geposit      | `geposit`            | active |
+| CGI            | CGI          | `cgi`                | active |
+| ES             | ES           | `es`                 | active |
 
-_(Add the client organization and any implementation partners here during setup.)_
+_(Sonepar is the client organization; Geposit is the external valid-address register provider; CGI and ES are implementation partners.)_
