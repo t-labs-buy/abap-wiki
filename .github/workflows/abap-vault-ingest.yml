@@ -3,14 +3,14 @@ name: ABAP Vault Ingest
 on:
   push:
     paths:
-      - 'raw/inbox/**'        # runs whenever a new file lands in the inbox
+      - "raw/inbox/**" # runs whenever a new file lands in the inbox
   schedule:
-    - cron: '0 7 * * 1'       # weekly safety-net sweep, Mondays 07:00 UTC
-  workflow_dispatch:           # manual "Run workflow" button
+    - cron: "0 7 * * 1" # weekly safety-net sweep, Mondays 07:00 UTC
+  workflow_dispatch: # manual "Run workflow" button
 
 concurrency:
   group: vault-ingest
-  cancel-in-progress: false    # runs queue up instead of colliding
+  cancel-in-progress: false # runs queue up instead of colliding
 
 permissions:
   contents: write
@@ -27,10 +27,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
+      - name: Install system tools
+        # pandoc: high-fidelity DOCX extraction; tesseract + poppler: OCR
+        # fallback for scanned PDFs. LibreOffice enables auto-conversion of
+        # legacy .doc/.ppt/.xls but adds ~2 min — uncomment if those appear:
+        # sudo apt-get install -y --no-install-recommends libreoffice
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends pandoc tesseract-ocr poppler-utils
 
       - name: Install dependencies
-        run: pip install anthropic pdfplumber python-pptx python-docx openpyxl
+        run: pip install anthropic pdfplumber python-pptx python-docx openpyxl "markitdown[pptx]" pytesseract pdf2image
 
       - name: Run ingest agent
         env:

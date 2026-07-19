@@ -7,6 +7,7 @@ import datetime
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 import anthropic
 
@@ -108,7 +109,10 @@ AUDIO_VIDEO_TYPES = {
     "mp4", "mov", "avi", "mkv", "webm", "wmv", "m4v", "flv",
 }
 # Legacy binary Office formats python-docx/python-pptx/openpyxl cannot read.
+# If LibreOffice (soffice) is available they are converted to the modern
+# format first; otherwise they are left for the curator with a clear message.
 LEGACY_OFFICE_TYPES = {"doc", "ppt", "xls"}
+LEGACY_TO_MODERN = {"doc": "docx", "ppt": "pptx", "xls": "xlsx"}
 BINARY_EXTRACTORS = {
     "pdf":  "extract_pdf",
     "pptx": "extract_pptx",
@@ -268,13 +272,40 @@ def extract_pdf(path, filename):
         if content:
             print(f"  ✓ Extracted {page_count} PDF pages, {len(content)} chars")
             return content
-        print(f"  ⚠ PDF has no extractable text ({page_count} pages) — needs OCR or manual handling")
-        return None
+        print(f"  ⚠ PDF has no text layer ({page_count} pages) — attempting OCR")
+        return extract_pdf_ocr(path)
     except ImportError:
         print("  ⚠ pdfplumber not installed — cannot extract PDF")
         return None
     except Exception as e:
         print(f"  ⚠ PDF extraction failed: {e}")
+        return None
+
+def extract_pdf_ocr(path):
+    """Fallback for scanned PDFs with no text layer: rasterize each page and
+    OCR it. Needs pytesseract + pdf2image (and the tesseract/poppler binaries);
+    without them the file is left for the curator as before."""
+    try:
+        import pytesseract
+        from pdf2image import convert_from_path
+    except ImportError:
+        print("  ⚠ OCR unavailable (pytesseract/pdf2image not installed) — needs manual handling")
+        return None
+    try:
+        images = convert_from_path(path, dpi=200)
+        pages = []
+        for i, image in enumerate(images):
+            text = pytesseract.image_to_string(image)
+            if text.strip():
+                pages.append(f"[Page {i+1} (OCR)]\n{text.strip()}")
+        content = "\n\n".join(pages)
+        if content:
+            print(f"  ✓ OCR extracted {len(pages)} of {len(images)} pages, {len(content)} chars")
+            return content
+        print(f"  ⚠ OCR found no text in {len(images)} pages")
+        return None
+    except Exception as e:
+        print(f"  ⚠ OCR failed: {e}")
         return None
 
 def pptx_shape_texts(shape, texts):
@@ -302,7 +333,28 @@ def pptx_shape_texts(shape, texts):
     elif hasattr(shape, "text") and shape.text.strip():
         texts.append(shape.text.strip())
 
+def extract_pptx_markitdown(path):
+    """Preferred PPTX path: markitdown emits one markdown block per slide
+    (with '<!-- Slide number: N -->' markers), handles grouped shapes,
+    renders tables as markdown with empty cells preserved, and includes
+    speaker notes under '### Notes:'."""
+    try:
+        from markitdown import MarkItDown
+    except ImportError:
+        return None
+    try:
+        text = MarkItDown().convert(path).text_content
+        if text and text.strip():
+            return text
+    except Exception as e:
+        print(f"  ⚠ markitdown failed ({e}) — falling back to python-pptx")
+    return None
+
 def extract_pptx(path, filename):
+    content = extract_pptx_markitdown(path)
+    if content:
+        print(f"  ✓ Extracted {len(content)} chars from PPTX via markitdown")
+        return content
     try:
         from pptx import Presentation
         prs = Presentation(path)
@@ -350,7 +402,30 @@ def docx_table_rows(table):
             rows.append(" | ".join(cells))
     return rows
 
+def extract_docx_pandoc(path):
+    """Preferred DOCX path: pandoc produces full-fidelity markdown — heading
+    levels, lists, links, emphasis, and tables that keep empty cells and
+    merged-cell spans (colspan) intact, all in document order."""
+    if not shutil.which("pandoc"):
+        return None
+    try:
+        result = subprocess.run(
+            ["pandoc", "-t", "gfm", "--wrap=none", path],
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout
+        if result.returncode != 0:
+            print(f"  ⚠ pandoc failed ({result.stderr.strip()[:200]}) — falling back to python-docx")
+    except Exception as e:
+        print(f"  ⚠ pandoc error ({e}) — falling back to python-docx")
+    return None
+
 def extract_docx(path, filename):
+    content = extract_docx_pandoc(path)
+    if content:
+        print(f"  ✓ Extracted {len(content)} chars from DOCX via pandoc")
+        return content
     try:
         from docx import Document
         from docx.table import Table
@@ -437,6 +512,34 @@ def extract_xlsx(path, filename):
     except Exception as e:
         print(f"  ⚠ XLSX extraction failed: {e}")
         return None
+
+def extract_legacy_office(path, filename, ext):
+    """Convert a legacy .doc/.ppt/.xls to its modern format with LibreOffice,
+    then run the normal extractor on the result. Returns None when soffice is
+    not installed or the conversion fails."""
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    if not soffice:
+        return None
+    target = LEGACY_TO_MODERN[ext]
+    outdir = tempfile.mkdtemp(prefix="vault-legacy-")
+    try:
+        result = subprocess.run(
+            [soffice, "--headless", "--convert-to", target, "--outdir", outdir, path],
+            capture_output=True, text=True, timeout=180,
+        )
+        base = os.path.splitext(os.path.basename(path))[0]
+        converted = os.path.join(outdir, base + "." + target)
+        if result.returncode != 0 or not os.path.exists(converted):
+            print(f"  ⚠ LibreOffice conversion failed: {(result.stderr or result.stdout).strip()[:200]}")
+            return None
+        print(f"  ✓ Converted legacy .{ext} to .{target} via LibreOffice")
+        extractor = globals()[BINARY_EXTRACTORS[target]]
+        return extractor(converted, filename)
+    except Exception as e:
+        print(f"  ⚠ LibreOffice conversion error: {e}")
+        return None
+    finally:
+        shutil.rmtree(outdir, ignore_errors=True)
 
 def move_to_processed(filename):
     os.makedirs(RAW_PROCESSED, exist_ok=True)
@@ -1103,13 +1206,19 @@ def process_file(filename):
         return
 
     if ext in LEGACY_OFFICE_TYPES:
-        log_unprocessable(filename, f"legacy .{ext} format — re-save as .{ext}x or export to PDF and re-drop")
-        return
-
-    content = read_inbox_file(filename)
-    if not content:
-        log_unprocessable(filename, "no text could be extracted (see run log for details)")
-        return
+        content = extract_legacy_office(filepath, filename, ext)
+        if not content:
+            log_unprocessable(
+                filename,
+                f"legacy .{ext} format — re-save as .{LEGACY_TO_MODERN[ext]} "
+                "or export to PDF and re-drop (LibreOffice auto-conversion unavailable or failed)",
+            )
+            return
+    else:
+        content = read_inbox_file(filename)
+        if not content:
+            log_unprocessable(filename, "no text could be extracted (see run log for details)")
+            return
 
     print(f"  Running ingest agent...")
     result = run_ingest_agent(filename, content)
