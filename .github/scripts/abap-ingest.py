@@ -107,14 +107,13 @@ AUDIO_VIDEO_TYPES = {
     "mp3", "wav", "m4a", "aac", "ogg", "flac", "wma", "opus",
     "mp4", "mov", "avi", "mkv", "webm", "wmv", "m4v", "flv",
 }
-# Legacy binary Office formats python-docx/python-pptx cannot read.
-LEGACY_OFFICE_TYPES = {"doc", "ppt"}
+# Legacy binary Office formats python-docx/python-pptx/openpyxl cannot read.
+LEGACY_OFFICE_TYPES = {"doc", "ppt", "xls"}
 BINARY_EXTRACTORS = {
     "pdf":  "extract_pdf",
     "pptx": "extract_pptx",
     "docx": "extract_docx",
     "xlsx": "extract_xlsx",
-    "xls":  "extract_xlsx",
 }
 
 def get_file_hash(filepath):
@@ -237,6 +236,7 @@ def extract_pdf(path, filename):
     try:
         import pdfplumber
         with pdfplumber.open(path) as pdf:
+            page_count = len(pdf.pages)
             pages = []
             for i, page in enumerate(pdf.pages):
                 page_parts = []
@@ -247,9 +247,13 @@ def extract_pdf(path, filename):
                             continue
                         rows = []
                         for row in table:
-                            cells = [str(cell).strip() for cell in row
-                                     if cell is not None and str(cell).strip()]
-                            if cells:
+                            # keep empty cells as placeholders so values stay
+                            # in their columns; only trim trailing empties
+                            cells = ["" if cell is None else str(cell).strip()
+                                     for cell in row]
+                            while cells and not cells[-1]:
+                                cells.pop()
+                            if any(cells):
                                 rows.append(" | ".join(cells))
                         if rows:
                             page_parts.append("[TABLE]\n" + "\n".join(rows))
@@ -262,9 +266,9 @@ def extract_pdf(path, filename):
                     pages.append(f"[Page {i+1}]\n" + "\n\n".join(page_parts))
             content = "\n\n".join(pages)
         if content:
-            print(f"  ✓ Extracted {len(pdf.pages)} PDF pages, {len(content)} chars")
+            print(f"  ✓ Extracted {page_count} PDF pages, {len(content)} chars")
             return content
-        print(f"  ⚠ PDF has no extractable text ({len(pdf.pages)} pages) — needs OCR or manual handling")
+        print(f"  ⚠ PDF has no extractable text ({page_count} pages) — needs OCR or manual handling")
         return None
     except ImportError:
         print("  ⚠ pdfplumber not installed — cannot extract PDF")
@@ -272,6 +276,31 @@ def extract_pdf(path, filename):
     except Exception as e:
         print(f"  ⚠ PDF extraction failed: {e}")
         return None
+
+def pptx_shape_texts(shape, texts):
+    # grouped shapes hold their content in child shapes — recurse into them
+    if hasattr(shape, "shapes"):
+        for child in shape.shapes:
+            pptx_shape_texts(child, texts)
+        return
+    if shape.has_table:
+        rows = []
+        for row in shape.table.rows:
+            # keep empty cells as placeholders so values stay in their
+            # columns; only trim trailing empties
+            cells = [cell.text.strip() for cell in row.cells]
+            while cells and not cells[-1]:
+                cells.pop()
+            if any(cells):
+                rows.append(" | ".join(cells))
+        if rows:
+            texts.append("[TABLE]\n" + "\n".join(rows))
+    elif hasattr(shape, "text_frame") and shape.text_frame:
+        text = shape.text_frame.text.strip()
+        if text:
+            texts.append(text)
+    elif hasattr(shape, "text") and shape.text.strip():
+        texts.append(shape.text.strip())
 
 def extract_pptx(path, filename):
     try:
@@ -281,20 +310,7 @@ def extract_pptx(path, filename):
         for i, slide in enumerate(prs.slides):
             texts = []
             for shape in slide.shapes:
-                if shape.has_table:
-                    rows = []
-                    for row in shape.table.rows:
-                        cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
-                        if cells:
-                            rows.append(" | ".join(cells))
-                    if rows:
-                        texts.append("[TABLE]\n" + "\n".join(rows))
-                elif hasattr(shape, "text_frame") and shape.text_frame:
-                    text = shape.text_frame.text.strip()
-                    if text:
-                        texts.append(text)
-                elif hasattr(shape, "text") and shape.text.strip():
-                    texts.append(shape.text.strip())
+                pptx_shape_texts(shape, texts)
             if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
                 notes = slide.notes_slide.notes_text_frame.text.strip()
                 if notes:
@@ -314,19 +330,53 @@ def extract_pptx(path, filename):
         print(f"  ⚠ PPTX extraction failed: {e}")
         return None
 
+def docx_table_rows(table):
+    rows = []
+    for row in table.rows:
+        cells = []
+        prev_tc = None
+        for cell in row.cells:
+            # horizontally merged cells repeat the same underlying element —
+            # emit the text once, not once per spanned column
+            if cell._tc is prev_tc:
+                continue
+            prev_tc = cell._tc
+            cells.append(cell.text.strip())
+        # keep empty cells as placeholders so values stay in their columns;
+        # only trim trailing empties
+        while cells and not cells[-1]:
+            cells.pop()
+        if any(cells):
+            rows.append(" | ".join(cells))
+    return rows
+
 def extract_docx(path, filename):
     try:
         from docx import Document
+        from docx.table import Table
+        from docx.text.paragraph import Paragraph
         doc = Document(path)
         parts = []
-        for para in doc.paragraphs:
-            if para.text.strip():
-                parts.append(para.text.strip())
-        for table in doc.tables:
-            for row in table.rows:
-                row_text = " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
-                if row_text:
-                    parts.append(row_text)
+        # walk the document body in order so tables stay next to the
+        # headings and paragraphs they belong to
+        for child in doc.element.body.iterchildren():
+            if child.tag.endswith("}p"):
+                para = Paragraph(child, doc)
+                text = para.text.strip()
+                if not text:
+                    continue
+                style = para.style.name if para.style else ""
+                if style.startswith("Heading"):
+                    try:
+                        level = min(int(style.rsplit(" ", 1)[-1]), 6)
+                    except ValueError:
+                        level = 1
+                    text = "#" * level + " " + text
+                parts.append(text)
+            elif child.tag.endswith("}tbl"):
+                rows = docx_table_rows(Table(child, doc))
+                if rows:
+                    parts.append("[TABLE]\n" + "\n".join(rows))
         content = "\n".join(parts)
         if content:
             print(f"  ✓ Extracted {len(content)} chars from DOCX")
@@ -343,17 +393,38 @@ def extract_docx(path, filename):
 def extract_xlsx(path, filename):
     try:
         import openpyxl
+        # data_only=True gives cached formula results; the raw load lets us
+        # fall back to the formula text when no cached value exists (e.g.
+        # workbooks generated by tools other than Excel)
         wb = openpyxl.load_workbook(path, data_only=True)
+        wb_raw = openpyxl.load_workbook(path, data_only=False)
         sheets = []
+        uncached_formulas = 0
         for sheet_name in wb.sheetnames:
             ws = wb[sheet_name]
+            ws_raw = wb_raw[sheet_name]
             rows = []
-            for row in ws.iter_rows(values_only=True):
-                row_text = " | ".join(str(c) for c in row if c is not None)
-                if row_text.strip():
-                    rows.append(row_text)
+            for row, row_raw in zip(ws.iter_rows(values_only=True),
+                                    ws_raw.iter_rows(values_only=True)):
+                cells = []
+                for c, c_raw in zip(row, row_raw):
+                    if c is None and isinstance(c_raw, str) and c_raw.startswith("="):
+                        cells.append(c_raw)
+                        uncached_formulas += 1
+                    elif c is None:
+                        # keep empty cells as placeholders so values stay
+                        # in their columns
+                        cells.append("")
+                    else:
+                        cells.append(str(c))
+                while cells and not cells[-1].strip():
+                    cells.pop()
+                if any(c.strip() for c in cells):
+                    rows.append(" | ".join(cells))
             if rows:
                 sheets.append(f"[Sheet: {sheet_name}]\n" + "\n".join(rows))
+        if uncached_formulas:
+            print(f"  ⚠ {uncached_formulas} formula cell(s) had no cached value — emitted the formula text instead")
         content = "\n\n".join(sheets)
         if content:
             print(f"  ✓ Extracted {len(wb.sheetnames)} XLSX sheets, {len(content)} chars")
