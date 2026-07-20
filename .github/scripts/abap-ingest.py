@@ -2,6 +2,7 @@
 import os
 import json
 import base64
+import codecs
 import hashlib
 import datetime
 import re
@@ -25,6 +26,13 @@ VALID_ZONE_PREFIXES = (
     "04-internal/",
     "meta/",
 )
+
+# Pipeline state files the ingest agent must never rewrite. meta/ is otherwise
+# writable (entities.md and index.md are legitimately model-maintained), but
+# these two are written by this script alone: a model-generated "update" to
+# inbox.md would wipe the dedup table and cause every processed file to be
+# re-ingested, and one to log.md would erase the ingest history.
+PROTECTED_PATHS = frozenset({"meta/inbox.md", "meta/log.md"})
 
 # Maps a page's path prefix to the index heading it belongs under.
 # Order matters: it doubles as the priority order when a wikilink target
@@ -222,21 +230,69 @@ def read_inbox_file(filename):
         print(f"  ✓ Stripped VTT timestamps — {len(content)} chars of transcript text")
     return content
 
+# Byte-order marks, longest first: the UTF-32-LE BOM starts with the two
+# bytes that are themselves the complete UTF-16-LE BOM, so checking UTF-16
+# first would mis-decode every UTF-32-LE file.
+BOM_ENCODINGS = (
+    (codecs.BOM_UTF32_LE, "utf-32"),
+    (codecs.BOM_UTF32_BE, "utf-32"),
+    (codecs.BOM_UTF8,     "utf-8-sig"),
+    (codecs.BOM_UTF16_LE, "utf-16"),
+    (codecs.BOM_UTF16_BE, "utf-16"),
+)
+BINARY_SNIFF_BYTES = 8192
+BINARY_CTRL_RATIO  = 0.30
+
+def looks_binary(raw):
+    """True if these bytes are not text in any single-byte or UTF-8 encoding.
+
+    Callers must resolve BOM-declared UTF-16/32 first — those legitimately
+    contain NUL bytes and would be misjudged here.
+    """
+    sample = raw[:BINARY_SNIFF_BYTES]
+    if not sample:
+        return False
+    if b"\x00" in sample:
+        return True
+    # Control bytes outside tab/newline/carriage-return/formfeed/escape.
+    ctrl = sum(1 for b in sample if b < 0x09 or 0x0E <= b < 0x20 or b == 0x7F)
+    return ctrl / len(sample) > BINARY_CTRL_RATIO
+
+def decode_text(raw):
+    """Decode raw bytes to text. Returns (text, encoding_label), or
+    (None, None) when the bytes are binary rather than text.
+
+    Without the binary check, latin-1 with errors="replace" always succeeds —
+    so an unrecognised binary format (.zip, .msg, .vsd) would decode to
+    mojibake and be sent to the API as if it were a document.
+    """
+    for bom, enc in BOM_ENCODINGS:
+        if raw.startswith(bom):
+            try:
+                return raw.decode(enc), enc
+            except UnicodeDecodeError:
+                break
+    if looks_binary(raw):
+        return None, None
+    try:
+        return raw.decode("utf-8"), "utf-8"
+    except UnicodeDecodeError:
+        return raw.decode("latin-1", errors="replace"), "latin-1"
+
 def read_as_text(path, filename):
     try:
         with open(path, "rb") as f:
             raw = f.read()
-        try:
-            content = raw.decode("utf-8")
-            print(f"  ✓ Read {len(content)} chars as text")
-            return content
-        except UnicodeDecodeError:
-            content = raw.decode("latin-1", errors="replace")
-            print(f"  ✓ Read {len(content)} chars as latin-1")
-            return content
     except Exception as e:
         print(f"  ⚠ Could not read {filename}: {e}")
         return None
+
+    content, encoding = decode_text(raw)
+    if content is None:
+        print(f"  ⚠ {filename} is a binary format, not text — not sending to the API")
+        return None
+    print(f"  ✓ Read {len(content)} chars as {encoding}")
+    return content
 
 def extract_pdf(path, filename):
     try:
@@ -605,6 +661,8 @@ def is_valid_vault_path(path):
         return False
     normalized = os.path.normpath(path).replace("\\", "/")
     if normalized.startswith("..") or "/../" in normalized:
+        return False
+    if normalized in PROTECTED_PATHS:
         return False
     for prefix in VALID_ZONE_PREFIXES:
         if normalized.startswith(prefix):
@@ -1161,7 +1219,10 @@ def apply_vault_changes(result, filename, log_only=False):
         content = item.get("content", "")
 
         if not is_valid_vault_path(path):
-            print(f"  ⚠ Rejected invalid path: '{path}' — not a valid zone folder")
+            reason = ("pipeline state file, written by this script only"
+                      if os.path.normpath(path).replace("\\", "/") in PROTECTED_PATHS
+                      else "not a valid zone folder")
+            print(f"  ⚠ Rejected path: '{path}' — {reason}")
             continue
 
         dir_name = os.path.dirname(path)
@@ -1196,12 +1257,28 @@ def apply_vault_changes(result, filename, log_only=False):
 
     return changed
 
-def log_unprocessable(filename, reason):
-    """Log a file we cannot process and leave it in the inbox for the curator."""
-    print(f"  ⚠ Unprocessable — left in inbox for the curator: {reason}")
+def log_unprocessable(filename, reason, permanent=True):
+    """Log a file we cannot process and leave it in the inbox for the curator.
+
+    permanent=True  — the file itself is the problem (unsupported format, no
+        extractable text). Recorded in meta/inbox.md against its current hash
+        so the weekly sweep stops retrying it and stops re-appending this same
+        line to the log every run. Replacing the file changes its hash, which
+        makes it eligible again automatically.
+    permanent=False — a transient failure (API error, agent gave up). NOT
+        recorded, so the next push or sweep retries it as before.
+    """
+    scope = "left in inbox for the curator" if permanent else "will retry next run"
+    print(f"  ⚠ Unprocessable — {scope}: {reason}")
     today = datetime.date.today().isoformat()
     with open(LOG_MD, "a") as f:
-        f.write(f"\n- {today}: Could not ingest `{filename}` — {reason}. File left in raw/inbox/ for the curator.\n")
+        f.write(f"\n- {today}: Could not ingest `{filename}` — {reason}. "
+                f"File left in raw/inbox/ for the curator.\n")
+    if permanent:
+        file_hash = get_file_hash(os.path.join(RAW_INBOX, filename)) or "—"
+        with open(INBOX_MD, "a") as f:
+            f.write(f"| {inbox_safe(filename)} | {today} | {file_hash} | — | "
+                    f"UNPROCESSABLE: {reason} |\n")
 
 def process_image_file(filename, filepath, ext):
     if ext not in IMAGE_MEDIA_TYPES:
@@ -1223,7 +1300,8 @@ def process_image_file(filename, filepath, ext):
         image_path=filepath, image_media_type=IMAGE_MEDIA_TYPES[ext],
     )
     if not result:
-        log_unprocessable(filename, "ingest agent failed on image (see run log)")
+        log_unprocessable(filename, "ingest agent failed on image (see run log)",
+                          permanent=False)
         return
     apply_vault_changes(result, filename)
     move_to_processed(filename)
@@ -1272,7 +1350,8 @@ def process_file(filename):
         # Do NOT move the file: leaving it in the inbox means the next push or
         # the weekly sweep retries it. Moving it with no inbox record would
         # silently lose it forever.
-        log_unprocessable(filename, "ingest agent failed after retries (see run log)")
+        log_unprocessable(filename, "ingest agent failed after retries (see run log)",
+                          permanent=False)
         return
     apply_vault_changes(result, filename)
     move_to_processed(filename)

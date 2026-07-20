@@ -7,9 +7,10 @@ pip install anthropic pdfplumber python-pptx python-docx openpyxl xlrd \
             "markitdown[pptx,docx,xlsx,xls,pdf]" pytesseract pdf2image reportlab xlwt
 # system: pandoc, tesseract-ocr, poppler-utils
 
-python make_fixtures.py    # writes fixtures/
-python ab_test.py          # our extractors vs markitdown, per format
-python fallback_test.py    # degradation: exits non-zero on regression
+python make_fixtures.py     # writes fixtures/
+python ab_test.py           # our extractors vs markitdown, per format
+python fallback_test.py     # degradation gate: exits non-zero on regression
+python robustness_test.py   # hardening gate: exits non-zero on regression
 ```
 
 `make_fixtures.py` builds documents engineered to break naive extractors: empty
@@ -22,6 +23,12 @@ rows are expected to fail, which is the evidence for what we did and didn't
 adopt. `fallback_test.py` is the gate: it simulates each missing binary and
 module and asserts every extractor either falls back with content intact or
 returns `None` cleanly, so a missing dependency never breaks the pipeline.
+
+`robustness_test.py` is the second gate. It covers the hardening fixes: binary
+formats are refused rather than decoded to mojibake and sent to the API,
+BOM-declared UTF-16/32 decodes to real text, `meta/inbox.md` and `meta/log.md`
+are not model-writable, and permanently unprocessable files are recorded so
+they stop retrying every run while transient failures stay retryable.
 
 Two `ab_test.py` rows fail by design in a local run without LibreOffice:
 `current-libreoffice-fallback` (correctly returns nothing when `soffice` is
