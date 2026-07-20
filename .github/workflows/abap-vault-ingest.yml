@@ -31,15 +31,18 @@ jobs:
 
       - name: Install system tools
         # pandoc: high-fidelity DOCX extraction; tesseract + poppler: OCR
-        # fallback for scanned PDFs. LibreOffice enables auto-conversion of
-        # legacy .doc/.ppt/.xls but adds ~2 min — uncomment if those appear:
+        # fallback for scanned PDFs. Legacy .xls needs no binary (xlrd reads it
+        # natively); LibreOffice is only needed for legacy .doc/.ppt and adds
+        # ~2 min — uncomment if those start appearing in the inbox:
         # sudo apt-get install -y --no-install-recommends libreoffice
         run: |
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends pandoc tesseract-ocr poppler-utils
 
       - name: Install dependencies
-        run: pip install anthropic pdfplumber python-pptx python-docx openpyxl "markitdown[pptx]" pytesseract pdf2image
+        # Every extractor degrades gracefully if its dependency is missing, so
+        # a failed install narrows coverage rather than breaking the pipeline.
+        run: pip install anthropic pdfplumber python-pptx python-docx openpyxl xlrd "markitdown[pptx]" pytesseract pdf2image
 
       - name: Run ingest agent
         env:

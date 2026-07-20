@@ -108,16 +108,18 @@ AUDIO_VIDEO_TYPES = {
     "mp3", "wav", "m4a", "aac", "ogg", "flac", "wma", "opus",
     "mp4", "mov", "avi", "mkv", "webm", "wmv", "m4v", "flv",
 }
-# Legacy binary Office formats python-docx/python-pptx/openpyxl cannot read.
+# Legacy binary Office formats python-docx/python-pptx cannot read.
 # If LibreOffice (soffice) is available they are converted to the modern
 # format first; otherwise they are left for the curator with a clear message.
-LEGACY_OFFICE_TYPES = {"doc", "ppt", "xls"}
+# (.xls is not in this set: xlrd reads it natively — see extract_xls.)
+LEGACY_OFFICE_TYPES = {"doc", "ppt"}
 LEGACY_TO_MODERN = {"doc": "docx", "ppt": "pptx", "xls": "xlsx"}
 BINARY_EXTRACTORS = {
     "pdf":  "extract_pdf",
     "pptx": "extract_pptx",
     "docx": "extract_docx",
     "xlsx": "extract_xlsx",
+    "xls":  "extract_xls",
 }
 
 def get_file_hash(filepath):
@@ -244,6 +246,11 @@ def extract_pdf(path, filename):
             pages = []
             for i, page in enumerate(pdf.pages):
                 page_parts = []
+                # page text first (it carries the document reading order,
+                # including table words inline), structured [TABLE] blocks after
+                text = page.extract_text()
+                if text and text.strip():
+                    page_parts.append(text.strip())
                 try:
                     tables = page.extract_tables()
                     for table in tables:
@@ -263,9 +270,6 @@ def extract_pdf(path, filename):
                             page_parts.append("[TABLE]\n" + "\n".join(rows))
                 except Exception:
                     pass
-                text = page.extract_text()
-                if text and text.strip():
-                    page_parts.append(text.strip())
                 if page_parts:
                     pages.append(f"[Page {i+1}]\n" + "\n\n".join(page_parts))
             content = "\n\n".join(pages)
@@ -512,6 +516,48 @@ def extract_xlsx(path, filename):
     except Exception as e:
         print(f"  ⚠ XLSX extraction failed: {e}")
         return None
+
+def extract_xls(path, filename):
+    """Legacy .xls: read natively with xlrd — no LibreOffice needed. The BIFF
+    format stores cached formula results, so formula cells yield their values.
+    Falls back to LibreOffice conversion for files xlrd cannot parse."""
+    try:
+        import xlrd
+    except ImportError:
+        print("  ⚠ xlrd not installed — trying LibreOffice conversion")
+        return extract_legacy_office(path, filename, "xls")
+    try:
+        wb = xlrd.open_workbook(path)
+        sheets = []
+        for ws in wb.sheets():
+            rows = []
+            for r in range(ws.nrows):
+                cells = []
+                for c in range(ws.ncols):
+                    cell = ws.cell(r, c)
+                    if cell.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
+                        # keep empty cells as placeholders so values stay
+                        # in their columns
+                        cells.append("")
+                    elif (cell.ctype == xlrd.XL_CELL_NUMBER
+                          and cell.value == int(cell.value)):
+                        cells.append(str(int(cell.value)))
+                    else:
+                        cells.append(str(cell.value).strip())
+                while cells and not cells[-1]:
+                    cells.pop()
+                if any(cells):
+                    rows.append(" | ".join(cells))
+            if rows:
+                sheets.append(f"[Sheet: {ws.name}]\n" + "\n".join(rows))
+        content = "\n\n".join(sheets)
+        if content:
+            print(f"  ✓ Extracted {wb.nsheets} XLS sheets via xlrd, {len(content)} chars")
+            return content
+        print("  ⚠ XLS has no extractable data via xlrd — trying LibreOffice conversion")
+    except Exception as e:
+        print(f"  ⚠ xlrd failed ({e}) — trying LibreOffice conversion")
+    return extract_legacy_office(path, filename, "xls")
 
 def extract_legacy_office(path, filename, ext):
     """Convert a legacy .doc/.ppt/.xls to its modern format with LibreOffice,
