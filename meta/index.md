@@ -25,6 +25,7 @@ _Last updated: 2026-07-20_
 ### Workstreams
 
 - [[OTC]] — Order-to-Cash workstream overview
+- [[INT]] — Integrations workstream overview (first scope: AD SAP User Integration)
 
 ### Stakeholders
 
@@ -36,6 +37,8 @@ _Last updated: 2026-07-20_
 - [[OTC - Madeleine Jacobsson]] — OTC (Order-to-Cash, ES)
 - [[OTC - Tomas Kuniholm]] — OTC (IT, ES)
 - [[OTC - Hashini]] — OTC (Developer, CR044)
+- [[INT - Ramalakshmi]] — INT (Developer / owner)
+- [[INT - Vedakala]] — INT (Code reviewer; alias of Veda)
 
 ### Meetings
 
@@ -55,6 +58,7 @@ _Last updated: 2026-07-20_
 
 - [[OTC - E-001 - Credit Auto-Release Job]] — ZSD_CREDIT_AUTORELEASE development
 - [[OTC - CR045 - BP Address Validation]] — BP address validation enhancement + detection report (draft)
+- [[INT - ZADUSR_SYNC]] — AD SAP User Integration report (CR INT1.0), code-reviewed 2026-03-26 (draft)
 
 ### Estimations
 

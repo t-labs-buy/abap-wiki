@@ -15,6 +15,7 @@ The single source of truth for names. Before creating **any** new workstream fol
 | OTC            | Order-to-Cash    | `otc`, `o2c`, `order to cash`, `order-to-cash`, `sd sales`         | _(verify)_ |
 | P2P            | Procure-to-Pay   | `p2p`, `ptp`, `procure to pay`, `purchase to pay`, `mm purchasing` | _(verify)_ |
 | RTR            | Record-to-Report | `rtr`, `r2r`, `record to report`, `fi/co`, `finance`               | _(verify)_ |
+| INT            | Integrations     | `int`, `integration`, `integrations`, `int1.0`, `ad sap user integration`, `ad user sync` | active     |
 
 ## SAP Modules
 
@@ -35,6 +36,7 @@ The single source of truth for names. Before creating **any** new workstream fol
 | DEV            | Development system | `dev`, `development`, `dev box`, `d01`       | _(replace with real SID)_ |
 | QAS            | Quality system     | `qas`, `qa`, `quality`, `test system`, `q01` | _(replace with real SID)_ |
 | PRD            | Production system  | `prd`, `prod`, `production`, `live`, `p01`   | _(replace with real SID)_ |
+| EDE            | EDE system (client 200) | `ede`, `ede/200`, `ede 200`             | active                    |
 
 ## Vendors & Partners
 
@@ -45,6 +47,6 @@ The single source of truth for names. Before creating **any** new workstream fol
 | Geposit        | Geposit      | `geposit`            | active |
 | CGI            | CGI          | `cgi`                | active |
 | ES             | ES           | `es`                 | active |
-| Veda           | Veda         | `veda`               | _(verify — author of the formal ABAP Development Standards document)_ |
+| Veda           | Veda         | `veda`, `vedakala`   | _(verify — author of the formal ABAP Development Standards document; performs code reviews)_ |
 
 _(Sonepar is the client organization; Geposit is the external valid-address register provider; CGI and ES are implementation partners. Veda authored the ABAP Development Standards document.)_
