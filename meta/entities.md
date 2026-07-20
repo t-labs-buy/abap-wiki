@@ -22,9 +22,11 @@ The single source of truth for names. Before creating **any** new workstream fol
 | -------------- | -------------------- | ------------------------------------------------------ | ---------- |
 | SD             | Sales & Distribution | `sd`, `sales and distribution`, `sales & distribution` | _(verify)_ |
 | MM             | Materials Management | `mm`, `materials management`                           | _(verify)_ |
-| FI             | Financial Accounting | `fi`, `finance`, `financial accounting`                | _(verify)_ |
+| FI             | Financial Accounting | `fi`, `finance`, `financial accounting`, `gl/ar/ap/aa` | _(verify)_ |
 | CO             | Controlling          | `co`, `controlling`                                    | _(verify)_ |
 | PP             | Production Planning  | `pp`, `production planning`                            | _(verify)_ |
+| RE             | Retail               | `re`, `retail`                                         | _(verify)_ |
+| BI             | BW/BI                | `bi`, `bw`, `bw/bi`, `business intelligence`           | _(verify)_ |
 
 ## Systems
 
@@ -43,5 +45,6 @@ The single source of truth for names. Before creating **any** new workstream fol
 | Geposit        | Geposit      | `geposit`            | active |
 | CGI            | CGI          | `cgi`                | active |
 | ES             | ES           | `es`                 | active |
+| Veda           | Veda         | `veda`               | _(verify — author of the formal ABAP Development Standards document)_ |
 
-_(Sonepar is the client organization; Geposit is the external valid-address register provider; CGI and ES are implementation partners.)_
+_(Sonepar is the client organization; Geposit is the external valid-address register provider; CGI and ES are implementation partners. Veda authored the ABAP Development Standards document.)_

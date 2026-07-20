@@ -2,13 +2,15 @@
 
 Master navigation catalog, organized by zone. **Updated on every ingest** — when a page is created or renamed, its entry here changes too.
 
-_Last updated: 2026-07-15_
+_Last updated: 2026-07-20_
 
 ## 01-standards
 
 ### Coding
 
 - [[Standard - ABAP Naming Conventions]] — custom object prefixes, variable scope/type prefixes, OO and program naming
+- [[Standard - ABAP Programming Guidelines]] — programming rules, general considerations, header/change documentation
+- [[Standard - ABAP Performance Guidelines]] — ECC + S/4HANA (CDS/AMDP/New Open SQL) performance rules and analysis tools
 
 ### Architecture
 
@@ -87,4 +89,4 @@ _Last updated: 2026-07-15_
 
 ## 04-internal
 
-- _(none yet)_
+- [[Process - Code Review]] — pre-transport code-review quality gates (SLIN, ATC, checklist, unit test)
