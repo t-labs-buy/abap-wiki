@@ -911,6 +911,13 @@ CRITICAL RULES — follow these exactly or the vault breaks:
     2+ workstreams or 2+ developments, create or update
     03-intelligence/patterns/Pattern - {{Name}}.md linking every place it was observed.
 
+10b. SCOPE RULE (mandatory for ALL Zone 03 gotcha/pattern/troubleshooting pages):
+    Every such page MUST state its applicability explicitly — a Scope or
+    "When To Apply" section with "**Applies to:**" (system/release, module,
+    object types, conditions) and "**Does not apply to:**" (exclusions, if
+    known). Scope only what the source material supports — do not widen it.
+    A scope-free rule is worse than no rule: an agent will apply it everywhere.
+
 11. FLOATING PAGES ARE FORBIDDEN: If you cannot link a new page upward to a parent,
     do not create it — append to an existing page instead.
 
@@ -950,6 +957,25 @@ CRITICAL RULES — follow these exactly or the vault breaks:
     (logistics chatter, empty shells, generated code with no purpose), return
     empty "updates" and "creates" arrays with only a log_entry explaining why.
     Do not invent pages to feel useful.
+
+17. CONFLICT CHECK (before any update — dedup catches duplicates, this catches
+    contradictions): Compare each extracted decision, rule, or constraint
+    against the standing pages it touches (target page, linked decisions,
+    applicable standards, all shown in Existing Pages above).
+    - Consistent → proceed with the update.
+    - Refines (narrows scope, adds a case) → update the page; note the refinement.
+    - Contradicts → do NOT silently overwrite. Keep the standing page's claim
+      authoritative, insert this block directly below the contradicted statement,
+      mention the conflict in the log_entry, and add it to the workstream's
+      Open-Questions page with owner "curator":
+
+      > [!warning] CONFLICT — unresolved
+      > {{new source, date}} states: {{claim}}.
+      > This contradicts the standing text above.
+      > Resolution owner: curator. Logged {today} in meta/log.md.
+
+    Conflicts are resolved only by a human decision (a Decision page or a
+    revision to one) — never by the ingest choosing a winner.
 
 Job:
 1. Triage the document per the constitution (workstream-specific → Zone 02,

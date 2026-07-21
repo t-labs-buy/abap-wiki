@@ -17,6 +17,11 @@ source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 
 Batch/periodic jobs that commit changes and then continue processing (or re-read/re-lock the same objects) must ensure the commit is fully applied before proceeding.
 
+## When To Apply
+
+- **Applies to:** batch/periodic jobs that commit via `BAPI_TRANSACTION_COMMIT` and continue processing the same or dependent objects in the same run.
+- **Does not apply to:** flows where nothing after the commit depends on the committed state or the released lock (e.g. a job's final commit) — the WAIT adds runtime without preventing anything.
+
 ## Approach
 
 Always call `BAPI_TRANSACTION_COMMIT` with `WAIT = 'X'` inside batch jobs.

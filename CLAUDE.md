@@ -416,6 +416,23 @@ Scan for any question asked by the client, a functional consultant, or a team me
 - If the question was **not answered** → append to `## Unanswered Questions` table with the same attribution and an owner if determinable, AND add it to that workstream's `Open-Questions/{WS}.md`
 - If the same question already exists → add the new asker/context to the `Also asked by` field (repeat signal — candidate for promotion)
 
+### C2. Conflict Check (Before Any Update)
+
+Deduplication catches duplicates; this step catches **contradictions**. Before creating or updating a page, compare each extracted decision, rule, or constraint against the standing pages it touches (the target page, its linked decisions, and applicable standards):
+
+- **Consistent** → proceed with the update.
+- **Refines** (narrows scope, adds a case) → update the existing page; note the refinement.
+- **Contradicts** → do NOT silently overwrite. Keep the standing page authoritative, add a conflict block to it directly below the contradicted statement, log the conflict in `meta/log.md`, and add it to the workstream's `Open-Questions/{WS}.md` with the curator as owner:
+
+```markdown
+> [!warning] CONFLICT — unresolved
+> {New source, date} states: {claim}.
+> This contradicts the standing text above.
+> Resolution owner: curator. Logged {date} in meta/log.md.
+```
+
+A conflict is resolved only by a human decision — recorded as a Decision page (or a revision to the existing one), after which the conflict block is removed. The losing claim is noted in the Decision's rationale, not deleted from history.
+
 ### D. Update — Order Matters (Non-Negotiable)
 
 **For Zone 02 (Workstreams):**
@@ -521,6 +538,7 @@ Every durable page must pass this test:
 2. **Can the model reuse it without asking for hidden context?** Self-contained.
 3. **Does it link to the right neighbors?** Upward to parent, sideways to related.
 4. **Is it better than a random meeting summary?** Synthesized, not transcribed.
+5. **Is the scope explicit?** Zone 03 pages (patterns, gotchas, troubleshooting) must state where the learning applies — system/release, module, and conditions — and, where known, where it does **not**. A scope-free rule is worse than no rule: an agent will apply it everywhere.
 
 If any answer is no, the page is not ready. Append to an existing page or hold as draft.
 

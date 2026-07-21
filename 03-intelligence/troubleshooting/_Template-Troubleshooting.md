@@ -15,6 +15,11 @@ source_files: []
 
 > Filename: `Troubleshooting - {Area}.md` · The curated layer above Issues and gotchas: written when 2+ resolved Issues shared the same diagnostic path. Update it every time a new Issue in this area is resolved.
 
+## Scope
+
+- **Applies to:** <!-- system/release, module, interfaces/objects this guide covers. Mandatory. -->
+- **Does not apply to:** <!-- neighboring problem classes this guide does NOT cover, if known -->
+
 ## Symptoms
 
 <!-- How this problem class shows up: error messages, transactions, monitoring signals. Someone searching a symptom string should land here. -->

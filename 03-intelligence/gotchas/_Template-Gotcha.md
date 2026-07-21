@@ -15,6 +15,11 @@ source_files: []
 
 > Filename: `Gotcha - {Name}.md` · Written **immediately** on first occurrence — gotchas don't wait for a 2nd sighting. Goal: nobody pays for this twice.
 
+## Scope
+
+- **Applies to:** <!-- system/release (ECC, S/4), module, object types, conditions. Mandatory — a scope-free gotcha gets applied everywhere. -->
+- **Does not apply to:** <!-- explicit exclusions, if known -->
+
 ## The Behavior
 
 <!-- The non-obvious SAP/ABAP behavior, exactly as it manifests. -->

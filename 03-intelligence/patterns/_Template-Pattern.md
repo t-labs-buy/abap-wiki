@@ -21,7 +21,8 @@ source_files: []
 
 ## When To Apply
 
-<!-- The situation that calls for this pattern — and when NOT to use it. -->
+- **Applies to:** <!-- system/release, module, object types, conditions. Mandatory — a scope-free pattern gets applied everywhere. -->
+- **Does not apply to:** <!-- explicit exclusions — situations where this pattern is wrong or unnecessary -->
 
 ## How To Apply
 

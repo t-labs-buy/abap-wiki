@@ -13,6 +13,11 @@ source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 
 # Gotcha — BAPI_TRANSACTION_COMMIT WAIT flag
 
+## Scope
+
+- **Applies to:** any ABAP code calling `BAPI_TRANSACTION_COMMIT` where a subsequent step in the same run depends on the committed data or on the lock being released — especially batch/periodic jobs that immediately re-read or re-process the same objects. Observed in P2P and OTC batch jobs on this project.
+- **Does not apply to:** a final commit with no dependent follow-up step in the same program flow — there `WAIT = 'X'` only adds runtime. No release dependency recorded (standard BAPI behavior, not project-specific).
+
 ## Behavior
 
 Calling `BAPI_TRANSACTION_COMMIT` **without** `WAIT = 'X'` returns control before the database update/locking work has fully completed. In batch jobs that immediately re-process or re-read the same objects, this caused intermittent **"order still locked"** errors.

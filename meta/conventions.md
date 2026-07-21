@@ -38,6 +38,14 @@ Every page carries exactly the schema in `CLAUDE.md` — copy it from the `_Temp
 
 `tags:` values come from the **Tag Vocabulary** in `meta/entities.md` — nothing free-form. Need a tag that isn't there? Add it to the vocabulary first (with its category), then use it. Tags say what a page is _about_ (technology, business object, quality, process, role, phase) — don't repeat the page's `type:` or `workstream:` in them.
 
+## Scope on intelligence pages
+
+Every pattern, gotcha, and troubleshooting page states **Applies to** / **Does not apply to** (system/release, module, conditions). A rule without scope gets applied everywhere — including where it's wrong.
+
+## Conflict blocks
+
+If you see a `> [!warning] CONFLICT — unresolved` block on a page: the standing text above it is still authoritative; a newer source contradicted it and the curator owns the resolution. Don't remove the block or rewrite the claim — resolution happens through a Decision page, which is when the block comes off.
+
 ## Status values
 
 `active` · `draft` · `parked` · `archived` · `resolved` (issues/closed decisions) · `evergreen` (standards, patterns, runbooks)
