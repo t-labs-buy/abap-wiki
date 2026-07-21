@@ -5,9 +5,9 @@ zone: 03-intelligence
 status: active
 owner: "Priya Nair"
 created: 2026-07-14
-updated: 2026-07-14
+updated: 2026-07-21
 workstream: ""
-tags: [pattern, bapi, commit, batch, locking]
+tags: [bapi, batch-job, locking]
 source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 ---
 

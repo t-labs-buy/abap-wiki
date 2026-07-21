@@ -5,9 +5,9 @@ zone: 02-workstreams
 status: active
 owner: "Senthil Palanivelu"
 created: 2026-07-14
-updated: 2026-07-14
+updated: 2026-07-21
 workstream: OTC
-tags: [decision, credit-management, fscm]
+tags: [credit-management, fscm]
 source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 ---
 

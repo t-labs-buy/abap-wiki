@@ -5,9 +5,9 @@ zone: 02-workstreams
 status: draft
 owner: "Priya Nair"
 created: 2026-07-14
-updated: 2026-07-14
+updated: 2026-07-21
 workstream: OTC
-tags: [estimation, wave-2]
+tags: [wave-2, credit-management]
 source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 ---
 

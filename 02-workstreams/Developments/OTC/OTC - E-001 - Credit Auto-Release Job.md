@@ -5,9 +5,9 @@ zone: 02-workstreams
 status: active
 owner: "Priya Nair"
 created: 2026-07-14
-updated: 2026-07-14
+updated: 2026-07-21
 workstream: OTC
-tags: [development, wricef, report, credit-management]
+tags: [wricef, report, credit-management, bapi, batch-job]
 source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 ---
 

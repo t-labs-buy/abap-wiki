@@ -5,9 +5,9 @@ zone: 04-internal
 status: active
 owner: "TBD"
 created: 2026-07-20
-updated: 2026-07-20
+updated: 2026-07-21
 workstream: ""
-tags: [process, code-review, quality-gate]
+tags: [code-review]
 source_files: ["ABAP Dev standards.pdf", "INT 1.0_Code_Review_Checklist_Tracker.xlsx"]
 ---
 

@@ -34,6 +34,10 @@ The short version of `CLAUDE.md` for teammates. When this page and `CLAUDE.md` d
 
 Every page carries exactly the schema in `CLAUDE.md` — copy it from the `_Template-*.md` in the folder you're writing into. No extra fields, no omissions.
 
+## Tags
+
+`tags:` values come from the **Tag Vocabulary** in `meta/entities.md` — nothing free-form. Need a tag that isn't there? Add it to the vocabulary first (with its category), then use it. Tags say what a page is _about_ (technology, business object, quality, process, role, phase) — don't repeat the page's `type:` or `workstream:` in them.
+
 ## Status values
 
 `active` · `draft` · `parked` · `archived` · `resolved` (issues/closed decisions) · `evergreen` (standards, patterns, runbooks)

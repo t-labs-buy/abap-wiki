@@ -5,9 +5,9 @@ zone: 01-standards
 status: evergreen
 owner: "TBD"
 created: 2026-07-20
-updated: 2026-07-20
+updated: 2026-07-21
 workstream: ""
-tags: [standard, coding, programming-guidelines, documentation]
+tags: [documentation]
 source_files: ["ABAP Dev standards.pdf"]
 ---
 

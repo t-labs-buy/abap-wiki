@@ -76,7 +76,7 @@ API_RETRIES       = 3
 PAGES_FULL_BUDGET   = 150_000  # full page content shown to Claude (updates need this)
 PAGE_PREVIEW_CHARS  = 500      # fallback preview once the full budget is spent
 INDEX_BUDGET        = 10_000
-ENTITIES_BUDGET     = 8_000
+ENTITIES_BUDGET     = 16_000
 
 def git_pull():
     try:
@@ -872,6 +872,12 @@ CRITICAL RULES — follow these exactly or the vault breaks:
    Set workstream to the canonical slug for all Zone 02 pages. Add `{filename}` to
    source_files on every page this ingest touches.
    DO NOT invent new frontmatter fields. DO NOT omit required fields.
+   TAG DISCIPLINE: every value in tags MUST come from the Tag Vocabulary section
+   of the Entity Registry above. Tags are domain tags only (technology,
+   business-object, quality, process, role, phase) — NEVER echo the page's type
+   or workstream into tags. A genuinely new tag → add it to the Tag Vocabulary
+   in meta/entities.md FIRST (as an update, with its category), then use it.
+   Known alias (e.g. sm36, batch) → use the canonical tag (batch-job).
 
 4. WIKILINKS: Every page MUST contain at least one [[wikilink]] to a related page,
    and every Zone 02 page MUST link to its workstream page [[{{WS}}]].

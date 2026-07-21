@@ -5,9 +5,9 @@ zone: 02-workstreams
 status: active
 owner: "Senthil Palanivelu"
 created: 2026-07-14
-updated: 2026-07-15
+updated: 2026-07-21
 workstream: OTC
-tags: [otc, sales, credit-management, master-data]
+tags: [sales-order, credit-management, master-data]
 source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt", "INT.119.0 FTDS CR045 BP Address Validation 3.0.docx"]
 ---
 

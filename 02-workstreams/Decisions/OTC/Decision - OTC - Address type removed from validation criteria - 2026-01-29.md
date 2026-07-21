@@ -5,9 +5,9 @@ zone: 02-workstreams
 status: active
 owner: "Andreas Kvarnö"
 created: 2026-07-15
-updated: 2026-07-15
+updated: 2026-07-21
 workstream: OTC
-tags: [decision, master-data, address-validation]
+tags: [master-data, address-validation]
 source_files: ["INT.119.0 FTDS CR045 BP Address Validation 3.0.docx"]
 ---
 

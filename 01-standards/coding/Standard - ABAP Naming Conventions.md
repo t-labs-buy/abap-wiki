@@ -5,9 +5,9 @@ zone: 01-standards
 status: evergreen
 owner: "TBD"
 created: 2026-07-14
-updated: 2026-07-20
+updated: 2026-07-21
 workstream: ""
-tags: [standard, naming-conventions, coding]
+tags: [naming-conventions]
 source_files: ["abap_naming_conventions.txt", "ABAP Dev standards.pdf"]
 ---
 

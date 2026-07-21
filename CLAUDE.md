@@ -311,10 +311,16 @@ owner: "" # Person responsible
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 workstream: "" # Canonical workstream OR module slug if applicable (OTC, P2P, SD, ...)
-tags: [] # Pages generated from source code MUST carry the ai-generated tag
+tags: [] # Controlled vocabulary — see Tag Discipline below. Pages generated from source code MUST carry the ai-generated tag
 source_files: [] # Raw files ingested into this page
 ---
 ```
+
+### Tag Discipline (Controlled Vocabulary)
+
+Every value in `tags:` MUST exist in the **Tag Vocabulary** section of `meta/entities.md`. A needed-but-missing tag is added to the registry first (with its category), then used. Free-form tags are treated like invented entity slugs — a normalization failure.
+
+Tags are **domain tags only**: they ground the page in what it is _about_ (technology, business object, quality concern, process, role, phase). Never echo into `tags:` what other frontmatter fields already say — no `type:` echoes (`spec`, `gotcha`, `stakeholder`, …) and no `workstream:` echoes (`otc`, `int`, …). Retrieval filters on `type:` and `workstream:` directly; tags carry the dimension those fields don't.
 
 ### Status Values
 
