@@ -1,6 +1,6 @@
 # Change Proposal — Adopting Organizational-Memory Strategies
 
-**Status:** Draft for curator review
+**Status:** Completed for CP-1, CP-3, CP-4 — implemented and live as of 2026-07-21 (commits `31902c0`, `33ce64e`). CP-2, CP-5, CP-6 remain open.
 **Date:** 2026-07-21
 **Author:** Claude (session with Senthil Palanivelu)
 **Decision owner:** Vault Curator
@@ -16,23 +16,25 @@ This vault's stated aim — a centralized knowledge base that coding agents and 
 
 ### Requirement coverage today
 
-| Req | Meaning                            | Vault today                                                    | This proposal           |
-| --- | ---------------------------------- | -------------------------------------------------------------- | ----------------------- |
-| R1  | Integrate heterogeneous sources    | ✅ Ingest pipeline (PDF/DOCX/XLSX/VTT/ABAP/images)             | —                       |
-| R2  | Agent-consumable, decomposed units | ⚠️ Page-granular; rules inside pages not addressable           | **CP-2**                |
-| R3  | Conflict detection & consistency   | ❌ Dedup only; contradictions go undetected                    | **CP-4**                |
-| R4  | Traceability to sources            | ✅ `source_files` + `raw/processed/` archive                   | —                       |
-| R5  | Context-specific retrieval         | ⚠️ Index + folders; free-form tags limit precision             | **CP-1**                |
-| R6  | Low-latency runtime access         | ✅ Query Mode: index first, smallest sufficient set            | —                       |
-| R7  | Adaptive memory over time          | ⚠️ Update-over-create + promotion exist; no change propagation | **CP-5**                |
-| R8  | Human governance & ownership       | ✅ Curator, `owner`, `ai-generated` + SME validation           | —                       |
-| R9  | Scale across agents/processes      | ✅ One shared repo, multiple consumer types                    | **CP-6** widens content |
+| Req | Meaning                            | Vault today                                                    | This proposal    |
+| --- | ---------------------------------- | -------------------------------------------------------------- | ---------------- |
+| R1  | Integrate heterogeneous sources    | ✅ Ingest pipeline (PDF/DOCX/XLSX/VTT/ABAP/images)             | —                |
+| R2  | Agent-consumable, decomposed units | ⚠️ Page-granular; rules inside pages not addressable           | **CP-2** (open)  |
+| R3  | Conflict detection & consistency   | ✅ C2 Conflict Check at ingest (was: dedup only)               | **CP-4** ✅ done |
+| R4  | Traceability to sources            | ✅ `source_files` + `raw/processed/` archive                   | —                |
+| R5  | Context-specific retrieval         | ✅ Controlled tag vocabulary (was: free-form tags)             | **CP-1** ✅ done |
+| R6  | Low-latency runtime access         | ✅ Query Mode: index first, smallest sufficient set            | —                |
+| R7  | Adaptive memory over time          | ⚠️ Update-over-create + promotion exist; no change propagation | **CP-5** (open)  |
+| R8  | Human governance & ownership       | ✅ Curator, `owner`, `ai-generated` + SME validation           | —                |
+| R9  | Scale across agents/processes      | ✅ One shared repo, multiple consumer types                    | **CP-6** (open)  |
 
 Each CP below contains the exact text to adopt, so items can be approved or struck individually.
 
 ---
 
 ## CP-1 — Controlled tag vocabulary (R5)
+
+> **✅ IMPLEMENTED 2026-07-21** (commit `31902c0`). As-built deviations from the draft below: (1) tags are **domain-only** — echoes of `type:` (`spec`, `gotcha`, …) and `workstream:` (`otc`, `int`, …) are banned, since those fields are already machine-filterable; (2) the vocabulary shipped with 41 tags in 8 categories (added `role`, `phase`, and project-specific rows like `fscm`, `user-provisioning`, `address-validation`); (3) the ingest pipeline's `ENTITIES_BUDGET` was raised 8k→16k so the vocabulary isn't truncated out of the prompt; (4) the pipeline prompt enforces the discipline (tag rule in rule 3). All 30 pages migrated; verification pass found zero out-of-vocabulary tags.
 
 **Problem.** `tags:` is free-form (`[gotcha, bapi, commit, locking]`). Tag-based retrieval — "everything touching IDocs" — is unreliable because nothing prevents `bapi` / `bapis` / `BAPI-call` drift. The paper grounds every memory unit in a tag-based _Enterprise Domain Model_, deliberately chosen over a formal ontology because tags can grow incrementally (their §5.1).
 
@@ -79,6 +81,8 @@ Seed rows come from tags already in use; the curator prunes/extends at setup.
 
 ## CP-2 — Atomic rule structure in rule-like pages (R2)
 
+> **⏳ OPEN.** Per the rollout plan: applied on next touch of each standards page. The Scope fields of the block format arrived early via CP-3.
+
 **Problem.** The unit of storage is the page; the unit of _use_ by a coding agent is the rule. `Standard - ABAP Naming Conventions` holds many rules, but none can be individually linked, retrieved, superseded, or checked for conflicts. The paper's core design choice is the _process atom_: one rule per unit with **Applicability**, **Action**, and **Purpose** separated — explicitly because "without decomposition into self-contained units, individual rules cannot be addressed, compared, updated, or selectively retrieved" (R2). We adopt the structure _within_ pages — the page stays the file, rules become addressable heading-blocks — keeping governance page-granular (their reason for not decomposing further, §5.1).
 
 **Change.** Rule-like page types (`standard`, `pattern`, `gotcha`, `troubleshooting`) structure each rule as its own `##` block:
@@ -109,6 +113,8 @@ One rule per block. Wikilinks may then target rules directly: `[[Standard - ABAP
 
 ## CP-3 — Mandatory applicability scoping (paper's measured failure mode)
 
+> **✅ IMPLEMENTED 2026-07-21** (commit `33ce64e`). Quality Bar test 5 added to CLAUDE.md exactly as drafted. Scope sections added to `_Template-Gotcha`, `_Template-Troubleshooting`; the Pattern template's existing "When To Apply" section was structured into the **Applies to / Does not apply to** fields. Both existing Zone 03 pages migrated with scope derived strictly from their recorded content. Pipeline prompt rule 10b enforces scoping and adds the anti-widening guard: "Scope only what the source material supports."
+
 **Problem.** The paper's Memory agent's _remaining_ errors were over-restrictions "caused by an imprecisely extracted atom whose applicability scope is too broad" (§6.2). Our equivalent: a gotcha written scope-free ("always pass WAIT='X'") gets applied by an agent where it doesn't hold, or a pattern from ECC gets applied to S/4.
 
 **Change.** Already embedded in CP-2's block format (**Applies to / Does not apply to**). This CP makes the field _mandatory rather than optional_ for Zone 03 pages, because intelligence pages travel furthest from their original context.
@@ -122,6 +128,8 @@ One rule per block. Wikilinks may then target rules directly: `[[Standard - ABAP
 ---
 
 ## CP-4 — Conflict detection at ingest (R3)
+
+> **✅ IMPLEMENTED 2026-07-21** (commit `33ce64e`). Step C2 added to the CLAUDE.md Ingestion Workflow exactly as drafted (consistent / refines / contradicts triage, conflict-block convention, curator-owned resolution via Decision pages). Pipeline prompt rule 17 performs the triage on every ingest. `meta/conventions.md` explains the conflict block to teammates encountering one in Obsidian.
 
 **Problem.** Deduplication Logic catches _duplicates_ ("decision page exists → update it") but not _contradictions_ ("new spec assumes RFC; standing decision mandates OData"). The paper's Global Curator explicitly checks each candidate against existing memory for conflicts and routes them to a human (§5.2). As pre-sales, delivery, and modernization all write into the vault, silent contradiction is the main consistency risk.
 
@@ -152,6 +160,8 @@ One rule per block. Wikilinks may then target rules directly: `[[Standard - ABAP
 
 ## CP-5 — Change propagation on standards and decisions (R7)
 
+> **⏳ OPEN.** Small CLAUDE.md-only change; ready to adopt whenever approved.
+
 **Problem.** R7's test case: "if the allowed threshold changes, all affected agents should follow the updated rule after a single change to the memory." The single-change part works here (pages link to standards rather than copying them) — but pages that _paraphrased_ the old rule go stale silently. The mandatory "decision → what it affects" links give us the affected-set for free; nothing mandates walking it.
 
 **Text to add to CLAUDE.md** (Linking Rules section, at the end):
@@ -163,6 +173,8 @@ One rule per block. Wikilinks may then target rules directly: `[[Standard - ABAP
 ---
 
 ## CP-6 — Two new page types: Component catalog and Proposals (R1/R9, project aim)
+
+> **⏳ OPEN — held for explicit curator decision.** This is the only CP that extends the fixed frontmatter schema.
 
 **Problem.** The project aim includes _standard components_ and _pre-sales proposals_; neither has a legal home, so today they'd be forced into ill-fitting types or dropped. A standard-component catalog is the highest-value content for AI-assisted development — it is what stops a coding agent reinventing (or mis-extending) a standard component. Proposals feed the estimation calibration loop from the pre-sales side.
 
@@ -234,9 +246,9 @@ source_files: []
 
 ## Suggested rollout
 
-1. **Week 1:** CP-1 (registry + tag pass) and CP-3 (scope lines on existing Zone 03 pages) — small, immediate retrieval gains.
-2. **Week 1–2:** CP-4 and CP-5 adopted into CLAUDE.md — forward-looking, zero migration.
+1. ~~**Week 1:** CP-1 (registry + tag pass) and CP-3 (scope lines on existing Zone 03 pages) — small, immediate retrieval gains.~~ ✅ Done 2026-07-21.
+2. ~~**Week 1–2:** CP-4 adopted into CLAUDE.md — forward-looking, zero migration.~~ ✅ Done 2026-07-21. CP-5 still open.
 3. **On next touch / next ingest:** CP-2 restructuring of the three standards pages.
-4. **When first content arrives:** CP-6 folders + templates.
+4. **When first content arrives:** CP-6 folders + templates (after curator approves the schema change).
 
 **Acceptance test** (per the paper's method): pick 5 realistic agent questions ("what rules apply when I write a batch job that calls a BAPI?"), answer each from the vault before and after, and check the after-answer retrieves the complete applicable rule set — including cross-cutting rules — with correct scope.
