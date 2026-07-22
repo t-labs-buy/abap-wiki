@@ -51,3 +51,23 @@ Overview page for the Order-to-Cash workstream (SD sales / credit management / m
 ## Open Questions
 
 - See [[Open-Questions/OTC|OTC Open Questions]]
+
+## Linked from
+
+- [[Decision - OTC - Address type removed from validation criteria - 2026-01-29]] (decision)
+- [[Decision - OTC - Custom credit auto-release job - 2026-07-14]] (decision)
+- [[OTC - Andreas Kvarnö]] (stakeholder)
+- [[OTC - Anna Larsen]] (stakeholder)
+- [[OTC - CR045 - BP Address Validation]] (development)
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC - E-001 - Credit Auto-Release Job]] (development)
+- [[OTC - Estimation - Credit Auto-Release Job - 2026-07-14]] (estimation)
+- [[OTC - Hashini]] (stakeholder)
+- [[OTC - Jonas Weber]] (stakeholder)
+- [[OTC - Madeleine Jacobsson]] (stakeholder)
+- [[OTC - Priya Nair]] (stakeholder)
+- [[OTC - Senthil Palanivelu]] (stakeholder)
+- [[OTC - Spec - BP Address Validation]] (spec)
+- [[OTC - Spec - Credit Block Auto-Release]] (spec)
+- [[OTC - Tomas Kuniholm]] (stakeholder)
+- [[Open-Questions/OTC|OTC Open Questions]] (open-questions)

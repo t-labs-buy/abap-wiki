@@ -85,3 +85,13 @@ Report requirements:
 - Reference data provider: [[Geposit]]
 - Shared table dependency: [[OTC - CR044 - Order Address Validation]]
 - Downstream dependency: [[OTC - CR040 - Transportation Zone Derivation]]
+
+## Linked from
+
+- [[Decision - OTC - Address type removed from validation criteria - 2026-01-29]] (decision)
+- [[OTC - Andreas Kvarnö]] (stakeholder)
+- [[OTC - CR045 - BP Address Validation]] (development)
+- [[OTC - Hashini]] (stakeholder)
+- [[OTC - Madeleine Jacobsson]] (stakeholder)
+- [[OTC - Tomas Kuniholm]] (stakeholder)
+- [[OTC]] (workstream)

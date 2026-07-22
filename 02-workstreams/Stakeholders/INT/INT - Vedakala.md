@@ -20,3 +20,9 @@ source_files: ["INT 1.0_Code_Review_Checklist_Tracker.xlsx"]
 
 - Registered in `meta/entities.md` as an alias of **Veda**, author of the formal *ABAP Development Standards* document — see [[Standard - ABAP Naming Conventions]], [[Standard - ABAP Programming Guidelines]], [[Standard - ABAP Performance Guidelines]].
 - Performed the code review of [[INT - ZADUSR_SYNC]] on 2026-03-26 (owner Ramalakshmi), following [[Process - Code Review]].
+
+## Linked from
+
+- [[INT - Ramalakshmi]] (stakeholder)
+- [[INT - ZADUSR_SYNC]] (development)
+- [[INT]] (workstream)

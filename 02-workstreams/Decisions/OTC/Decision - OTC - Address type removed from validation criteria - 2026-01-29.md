@@ -35,3 +35,10 @@ It has been decided to only upload **relevant address types** into `ZSD_ADR_VLD`
 - Affects [[OTC - CR045 - BP Address Validation]].
 
 Source: CR045 / INT.119.0 FTDS v3.0.
+
+## Linked from
+
+- [[OTC - Andreas Kvarnö]] (stakeholder)
+- [[OTC - CR045 - BP Address Validation]] (development)
+- [[OTC - Spec - BP Address Validation]] (spec)
+- [[OTC]] (workstream)

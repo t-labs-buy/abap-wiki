@@ -19,3 +19,7 @@ source_files: ["INT.119.0 FTDS CR045 BP Address Validation 3.0.docx"]
 ## Notes
 
 - Listed as an OTC contact on the CR045 BP Address Validation spec. See [[OTC - Spec - BP Address Validation]].
+
+## Linked from
+
+- [[OTC]] (workstream)

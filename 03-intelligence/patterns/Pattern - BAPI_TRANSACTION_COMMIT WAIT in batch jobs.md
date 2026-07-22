@@ -34,3 +34,7 @@ Always call `BAPI_TRANSACTION_COMMIT` with `WAIT = 'X'` inside batch jobs.
 ## Related
 
 - [[Gotcha - BAPI_TRANSACTION_COMMIT wait flag]]
+
+## Linked from
+
+- [[Gotcha - BAPI_TRANSACTION_COMMIT wait flag]] (gotcha)

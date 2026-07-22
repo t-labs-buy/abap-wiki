@@ -20,3 +20,7 @@ source_files: ["INT.119.0 FTDS CR045 BP Address Validation 3.0.docx"]
 
 - Author of the CR045 BP Address Validation functional & technical design spec (through v3.0, dated 2026-01-29). See [[OTC - Spec - BP Address Validation]].
 - Drove the v3.0 change to remove address type as a validation criterion — see [[Decision - OTC - Address type removed from validation criteria - 2026-01-29]].
+
+## Linked from
+
+- [[OTC]] (workstream)

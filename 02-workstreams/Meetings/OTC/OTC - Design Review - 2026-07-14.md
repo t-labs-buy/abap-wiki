@@ -42,3 +42,10 @@ Key-account sales orders (customer group Z1) get stuck in credit block even when
 - Priya drafts the technical spec by 2026-07-18.
 - Senthil adds the object to the Wave 2 WRICEF list.
 - Follow-up review scheduled for 2026-07-22.
+
+## Linked from
+
+- [[Decision - OTC - Custom credit auto-release job - 2026-07-14]] (decision)
+- [[Gotcha - BAPI_TRANSACTION_COMMIT wait flag]] (gotcha)
+- [[OTC]] (workstream)
+- [[Open-Questions/OTC|OTC Open Questions]] (open-questions)

@@ -91,3 +91,11 @@ lv_amount = ls_mseg-wrbtr.  "Inserted  <User ID> <Date> <Defect/ChangeNo>
 - [[Standard - ABAP Naming Conventions]]
 - [[Standard - ABAP Performance Guidelines]]
 - [[Process - Code Review]]
+
+## Linked from
+
+- [[INT - Vedakala]] (stakeholder)
+- [[INT - ZADUSR_SYNC]] (development)
+- [[Process - Code Review]] (process)
+- [[Standard - ABAP Naming Conventions]] (standard)
+- [[Standard - ABAP Performance Guidelines]] (standard)

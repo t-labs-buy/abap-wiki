@@ -35,3 +35,11 @@ Always pass `WAIT = 'X'` when a subsequent step depends on the committed data or
 
 - [[Pattern - BAPI_TRANSACTION_COMMIT WAIT in batch jobs]]
 - [[OTC - Design Review - 2026-07-14]]
+
+## Linked from
+
+- [[Decision - OTC - Custom credit auto-release job - 2026-07-14]] (decision)
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC - E-001 - Credit Auto-Release Job]] (development)
+- [[OTC - Priya Nair]] (stakeholder)
+- [[Pattern - BAPI_TRANSACTION_COMMIT WAIT in batch jobs]] (pattern)

@@ -22,3 +22,14 @@ Rolling open-questions page for [[OTC]]. Source: [[OTC - Design Review - 2026-07
 | Q3 | Can we transport the SM36 job definition, or does it need manual setup in each system? | Unassigned | — | Open | process-and-transport |
 
 Related: [[OTC - E-001 - Credit Auto-Release Job]], [[FAQ - Credit Auto-Release Integration]], [[FAQ - Transporting Background Jobs]]
+
+## Linked from
+
+- [[FAQ - Credit Auto-Release Integration]] (faq)
+- [[FAQ - Transporting Background Jobs]] (faq)
+- [[OTC - Anna Larsen]] (stakeholder)
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC - E-001 - Credit Auto-Release Job]] (development)
+- [[OTC - Jonas Weber]] (stakeholder)
+- [[OTC - Spec - Credit Block Auto-Release]] (spec)
+- [[OTC]] (workstream)

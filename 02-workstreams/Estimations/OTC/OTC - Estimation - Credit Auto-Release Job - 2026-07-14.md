@@ -36,3 +36,8 @@ Custom periodic report to auto-release credit-blocked key-account sales orders. 
 | **Total** | | **8** | TBD |
 
 Complexity: medium.
+
+## Linked from
+
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC - E-001 - Credit Auto-Release Job]] (development)

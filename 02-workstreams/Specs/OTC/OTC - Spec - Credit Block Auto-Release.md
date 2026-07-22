@@ -34,3 +34,10 @@ Key-account sales orders (customer group Z1) that are held in credit block shoul
 - Development: [[OTC - E-001 - Credit Auto-Release Job]]
 - Decision: [[Decision - OTC - Custom credit auto-release job - 2026-07-14]]
 - Open questions: [[Open-Questions/OTC|OTC Open Questions]]
+
+## Linked from
+
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC - E-001 - Credit Auto-Release Job]] (development)
+- [[OTC - Priya Nair]] (stakeholder)
+- [[OTC]] (workstream)

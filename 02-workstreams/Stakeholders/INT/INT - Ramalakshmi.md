@@ -20,3 +20,8 @@ source_files: ["INT 1.0_Code_Review_Checklist_Tracker.xlsx"]
 
 - Owner and developer of [[INT - ZADUSR_SYNC]] (AD SAP User Integration report, CR INT1.0).
 - Self-completed the Code Review Checklist Tracker for the object; reviewed by [[INT - Vedakala]] on 2026-03-26.
+
+## Linked from
+
+- [[INT - ZADUSR_SYNC]] (development)
+- [[INT]] (workstream)

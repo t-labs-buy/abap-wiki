@@ -19,3 +19,9 @@ source_files: ["INT.119.0 FTDS CR045 BP Address Validation 3.0.docx"]
 ## Notes
 
 - Built CR044 (address validation in sales order), which shares the reference table ZSD_ADR_VLD with CR045. See [[OTC - Spec - BP Address Validation]] and [[OTC - CR045 - BP Address Validation]].
+
+## Linked from
+
+- [[OTC - CR045 - BP Address Validation]] (development)
+- [[OTC - Spec - BP Address Validation]] (spec)
+- [[OTC]] (workstream)

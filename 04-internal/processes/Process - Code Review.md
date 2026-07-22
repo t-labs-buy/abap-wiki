@@ -51,3 +51,10 @@ Each checklist item is anchored to an ATC rule/variant so the manual review and 
 - [[Standard - ABAP Programming Guidelines]]
 - [[Standard - ABAP Performance Guidelines]]
 - [[Standard - ABAP Naming Conventions]]
+
+## Linked from
+
+- [[INT - Vedakala]] (stakeholder)
+- [[INT - ZADUSR_SYNC]] (development)
+- [[Standard - ABAP Performance Guidelines]] (standard)
+- [[Standard - ABAP Programming Guidelines]] (standard)

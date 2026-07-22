@@ -28,3 +28,9 @@ Overview page for the Integrations workstream. First recorded scope: **AD SAP Us
 
 - Workstream slug newly registered in `meta/entities.md` on ingest of the INT1.0 code review checklist tracker. Real scope, owner, and system landscape to be confirmed.
 - Object under review lives in system **EDE** (client 200).
+
+## Linked from
+
+- [[INT - Ramalakshmi]] (stakeholder)
+- [[INT - Vedakala]] (stakeholder)
+- [[INT - ZADUSR_SYNC]] (development)

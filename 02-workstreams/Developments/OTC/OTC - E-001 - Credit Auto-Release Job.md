@@ -46,3 +46,19 @@ Periodic job that automatically releases credit-blocked key-account sales orders
 - Q2: stale broker-feed handling (Anna)
 - Q3: transporting the SM36 job definition
 - See [[Open-Questions/OTC|OTC Open Questions]]
+
+## Linked from
+
+- [[Decision - OTC - Custom credit auto-release job - 2026-07-14]] (decision)
+- [[FAQ - Credit Auto-Release Integration]] (faq)
+- [[FAQ - Transporting Background Jobs]] (faq)
+- [[Gotcha - BAPI_TRANSACTION_COMMIT wait flag]] (gotcha)
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC - Estimation - Credit Auto-Release Job - 2026-07-14]] (estimation)
+- [[OTC - Priya Nair]] (stakeholder)
+- [[OTC - Senthil Palanivelu]] (stakeholder)
+- [[OTC - Spec - Credit Block Auto-Release]] (spec)
+- [[OTC]] (workstream)
+- [[Open-Questions/OTC|OTC Open Questions]] (open-questions)
+- [[Pattern - BAPI_TRANSACTION_COMMIT WAIT in batch jobs]] (pattern)
+- [[Standard - ABAP Naming Conventions]] (standard)

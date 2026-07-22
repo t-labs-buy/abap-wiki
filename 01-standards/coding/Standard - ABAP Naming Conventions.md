@@ -123,3 +123,11 @@ Naming conventions for object types not listed here should be decided within the
 ---
 
 _Where the earlier generic prefixes conflict with the formal module-code scheme, follow the formal scheme. Assign a named owner to confirm project-specific deviations. See also [[Standard - ABAP Programming Guidelines]] and [[Standard - ABAP Performance Guidelines]]._
+
+## Linked from
+
+- [[INT - Vedakala]] (stakeholder)
+- [[INT - ZADUSR_SYNC]] (development)
+- [[Process - Code Review]] (process)
+- [[Standard - ABAP Performance Guidelines]] (standard)
+- [[Standard - ABAP Programming Guidelines]] (standard)

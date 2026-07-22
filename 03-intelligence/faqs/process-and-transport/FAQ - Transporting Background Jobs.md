@@ -24,3 +24,7 @@ _(none yet)_
 | Question | Asked by | Owner | Due |
 | --- | --- | --- | --- |
 | Can we transport the SM36 job definition, or does it need manual setup in each system? | Anna Larsen | Unassigned | — |
+
+## Linked from
+
+- [[Open-Questions/OTC|OTC Open Questions]] (open-questions)

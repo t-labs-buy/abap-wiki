@@ -365,6 +365,25 @@ Every durable page links:
 
 Use `[[wikilinks]]` for all internal references.
 
+### Backlinks — `## Linked from` (Mandatory)
+
+Wikilinks are stored **bidirectionally**. Obsidian computes backlinks at view time, but the ingest pipeline, Claude sessions, and GitHub read raw files — the reverse direction must live in the files themselves.
+
+- Every content page (zones 01–04) with at least one inbound link ends with a `## Linked from` section listing the pages that reference it:
+
+  ```markdown
+  ## Linked from
+
+  - [[Decision - OTC - Custom credit auto-release job - 2026-07-14]] (decision)
+  - [[OTC - Design Review - 2026-07-14]] (meeting)
+  ```
+
+- **Whenever you add a forward `[[wikilink]]` to a page, add the matching entry to the target page's `## Linked from` section in the same update.** Create the section (as the last section of the page) if it doesn't exist.
+- Entry format: `- [[Page]] (type)` — the source page's `type:` in parentheses. One entry per source page, sorted alphabetically, no duplicates.
+- Links inside a `## Linked from` section are reverse edges: they never generate backlinks themselves and don't count as the page's forward links.
+- Only zone 01–04 content pages generate backlinks. Links from `meta/` pages (index, log) and `_Template-*` files do not.
+- A forward link to a page that doesn't exist yet is still fine (see Code Ingestion Rule) — the backlink is added when that page is created.
+
 ### Mandatory Link Patterns
 
 - **Everything in Zone 02 → its workstream page.** Every meeting, decision, spec, development, and issue links to `[[{WS}]]`.
@@ -456,6 +475,8 @@ A conflict is resolved only by a human decision — recorded as a Decision page 
 5. Link back to every Zone 02 page where the learning was observed.
 
 **Floating summaries are forbidden.** If you cannot link a new page upward to a parent, do not create it. Append to an existing page instead.
+
+**Backlink maintenance is part of every update.** Every forward `[[wikilink]]` added in the steps above gets its reverse entry in the target page's `## Linked from` section — see Linking Rules.
 
 ### E. Log
 

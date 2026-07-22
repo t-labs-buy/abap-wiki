@@ -882,6 +882,17 @@ CRITICAL RULES — follow these exactly or the vault breaks:
 4. WIKILINKS: Every page MUST contain at least one [[wikilink]] to a related page,
    and every Zone 02 page MUST link to its workstream page [[{{WS}}]].
 
+4b. BACKLINKS: Links are stored bidirectionally. When you add a forward
+    [[wikilink]] to a page, add the matching entry to the TARGET page's
+    "## Linked from" section — the last section of the page; create it if
+    missing. Entry format: `- [[Source Page]] (type)`, alphabetically sorted,
+    one entry per source page, no duplicates. This applies to pages you CREATE
+    (list every existing page that links to them) and pages you UPDATE. If a
+    target page is marked PREVIEW ONLY and cannot be updated, note the missing
+    backlink in the log_entry instead. Links INSIDE a "## Linked from" section
+    are reverse edges — never treat them as forward links and never generate
+    backlinks for them.
+
 5. NO DUPLICATES: If a page already exists in Existing Pages above, UPDATE it.
    Do not create a new page for the same content. If a decision on the same topic
    exists, update it and note the revision — never create a competing decision page.

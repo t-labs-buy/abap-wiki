@@ -22,3 +22,8 @@ source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 - Drafting the technical spec by 2026-07-18 — see [[OTC - Spec - Credit Block Auto-Release]].
 - Initial effort estimate: 8 person-days (dev 5, test 2, doc 1), medium complexity.
 - Flagged the [[Gotcha - BAPI_TRANSACTION_COMMIT wait flag]] carried over from the P2P workstream.
+
+## Linked from
+
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC]] (workstream)

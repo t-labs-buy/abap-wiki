@@ -42,6 +42,10 @@ Every page carries exactly the schema in `CLAUDE.md` — copy it from the `_Temp
 
 Every pattern, gotcha, and troubleshooting page states **Applies to** / **Does not apply to** (system/release, module, conditions). A rule without scope gets applied everywhere — including where it's wrong.
 
+## Backlinks — "Linked from"
+
+Every page that other pages reference ends with a `## Linked from` section — the reverse of every `[[wikilink]]` pointing at it, as `- [[Source Page]] (type)`. When you add a wikilink to a page, add the reverse entry on the target page too. Obsidian shows backlinks automatically, but the pipeline, Claude sessions, and GitHub only see what's written in the file.
+
 ## Conflict blocks
 
 If you see a `> [!warning] CONFLICT — unresolved` block on a page: the standing text above it is still authoritative; a newer source contradicted it and the curator owns the resolution. Don't remove the block or rewrite the claim — resolution happens through a Decision page, which is when the block comes off.

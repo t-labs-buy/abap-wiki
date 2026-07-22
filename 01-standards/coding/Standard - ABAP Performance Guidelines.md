@@ -83,3 +83,11 @@ Most useful with production-like data volumes.
 - [[Standard - ABAP Programming Guidelines]]
 - [[Standard - ABAP Naming Conventions]]
 - [[Process - Code Review]]
+
+## Linked from
+
+- [[INT - Vedakala]] (stakeholder)
+- [[INT - ZADUSR_SYNC]] (development)
+- [[Process - Code Review]] (process)
+- [[Standard - ABAP Naming Conventions]] (standard)
+- [[Standard - ABAP Programming Guidelines]] (standard)

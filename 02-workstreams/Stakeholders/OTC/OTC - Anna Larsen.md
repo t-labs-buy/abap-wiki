@@ -22,3 +22,8 @@ source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 - Confirmed the decision to build a custom periodic release job — see [[Decision - OTC - Custom credit auto-release job - 2026-07-14]].
 - Set the hard compliance requirement: a BAL application-log entry for every released order.
 - Owns open question Q2 (stale broker feed handling) — see [[Open-Questions/OTC|OTC Open Questions]].
+
+## Linked from
+
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC]] (workstream)

@@ -25,3 +25,7 @@ _(none yet)_
 | --- | --- | --- | --- |
 | Should released orders trigger an IDoc to the CRM system, or is the existing change-pointer mechanism enough? | Jonas Weber | Jonas Weber (CRM team) | 2026-07-21 |
 | When the broker feed is stale (ZINSURANCE older than 48h), should the job skip release or release with warning? | Anna Larsen | Anna Larsen (credit team) | — |
+
+## Linked from
+
+- [[Open-Questions/OTC|OTC Open Questions]] (open-questions)

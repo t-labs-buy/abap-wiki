@@ -43,3 +43,12 @@ Go with **option (b), the custom periodic job**.
 - Use `BAPI_TRANSACTION_COMMIT` with `WAIT = 'X'` — see [[Gotcha - BAPI_TRANSACTION_COMMIT wait flag]].
 
 Source: [[OTC - Design Review - 2026-07-14]]
+
+## Linked from
+
+- [[OTC - Anna Larsen]] (stakeholder)
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC - E-001 - Credit Auto-Release Job]] (development)
+- [[OTC - Jonas Weber]] (stakeholder)
+- [[OTC - Spec - Credit Block Auto-Release]] (spec)
+- [[OTC]] (workstream)

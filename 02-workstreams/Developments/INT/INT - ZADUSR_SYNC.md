@@ -58,3 +58,10 @@ Report that synchronises **Active Directory users into SAP** (AD → SAP user in
 ## Effort
 
 - Not estimated.
+
+## Linked from
+
+- [[INT - Ramalakshmi]] (stakeholder)
+- [[INT - Vedakala]] (stakeholder)
+- [[INT]] (workstream)
+- [[Process - Code Review]] (process)

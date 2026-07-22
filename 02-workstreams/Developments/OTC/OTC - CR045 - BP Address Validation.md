@@ -48,3 +48,10 @@ See [[OTC - Spec - BP Address Validation]] for full functional/technical detail 
 ## Effort
 
 - Not yet estimated.
+
+## Linked from
+
+- [[Decision - OTC - Address type removed from validation criteria - 2026-01-29]] (decision)
+- [[OTC - Hashini]] (stakeholder)
+- [[OTC - Spec - BP Address Validation]] (spec)
+- [[OTC]] (workstream)

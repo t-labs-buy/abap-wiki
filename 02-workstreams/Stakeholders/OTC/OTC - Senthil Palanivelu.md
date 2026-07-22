@@ -20,3 +20,8 @@ source_files: ["OTC Design Review Meeting Notes 2026-07-14.txt"]
 
 - Tech Lead for [[OTC]].
 - Action: add [[OTC - E-001 - Credit Auto-Release Job]] to the Wave 2 WRICEF list.
+
+## Linked from
+
+- [[OTC - Design Review - 2026-07-14]] (meeting)
+- [[OTC]] (workstream)
