@@ -40,15 +40,17 @@ foreach ($d in "$HOME\.claude\skills\abap-wiki", "$HOME\.gemini\config\skills\ab
 
 Both produce identical output. The loop finds the script wherever this skill is
 installed — Claude Code, VS Code and Antigravity each use a different folder —
-so run it exactly as written. Do not hand-write a `git clone`: the script also
-repairs a damaged copy and degrades safely when offline.
+so run it exactly as written. Do not hand-write a `git clone` or `git pull`: the
+script checks the remote's HEAD before transferring anything, skips the pull
+when nothing has changed, repairs a damaged copy, and degrades safely when
+offline.
 
 It prints four lines:
 
 | Line          | Meaning                                                                        |
 | ------------- | ------------------------------------------------------------------------------ |
 | `VAULT_PATH=` | absolute path of the local clone — normally `~/.cache/claude-vaults/abap-wiki` |
-| `STATUS=`     | `cloned`, `updated`, `repaired`, or `offline (using cached copy)`              |
+| `STATUS=`     | `current`, `updated`, `cloned`, `repaired`, or `offline (using cached copy)`   |
 | `LATEST=`     | newest commit in the copy you are about to read                                |
 | `PAGES=`      | number of vault pages available                                                |
 
@@ -59,7 +61,12 @@ real path instead.
 
 Handle the status:
 
-- `offline (using cached copy)` — answer anyway, but tell the user the vault
+- `current` — the remote had nothing new, so no pull was needed. The cache is
+  verified up to date. Answer normally; no staleness caveat.
+- `updated` / `cloned` / `repaired` — fresh content was just fetched. Answer
+  normally.
+- `offline (using cached copy)` — the remote could not be reached, or it had
+  changes that failed to transfer. Answer anyway, but tell the user the vault
   may be out of date and quote the `LATEST` date.
 - The script exits non-zero only when there is no usable copy at all. If that
   happens, report the error rather than answering from general knowledge.

@@ -31,6 +31,14 @@ function Invoke-GitQuiet {
   return ($LASTEXITCODE -eq 0)
 }
 
+# Same as Invoke-GitQuiet but returns the first line of stdout ($null on failure).
+function Get-GitOutput {
+  param([string[]]$GitArgs)
+  $out = & git @gitOpts @GitArgs 2>$null
+  if ($LASTEXITCODE -ne 0) { return $null }
+  return ($out | Select-Object -First 1)
+}
+
 # A cache is usable only if it is a valid git repo AND looks like a vault.
 function Test-CacheOk {
   if (-not (Test-Path (Join-Path $dest '.git'))) { return $false }
@@ -70,11 +78,26 @@ elseif (-not (Test-Path $dest)) {
   }
 }
 else {
-  if ((Invoke-GitQuiet @('-C', $dest, 'fetch', '--depth', '1', '-q', 'origin', 'HEAD')) -and
-      (Invoke-GitQuiet @('-C', $dest, 'reset', '--hard', '-q', 'FETCH_HEAD'))) {
+  # Ask the remote for its HEAD sha only — a ref advertisement, no object
+  # transfer. If it matches what we already have, skip the fetch entirely and
+  # answer from the cache.
+  $localSha = Get-GitOutput @('-C', $dest, 'rev-parse', 'HEAD')
+  $remoteLine = Get-GitOutput @('-C', $dest, 'ls-remote', 'origin', 'HEAD')
+  $remoteSha = if ($remoteLine) { ($remoteLine.Trim() -split '\s+')[0] } else { $null }
+
+  if (-not $remoteSha) {
+    # Could not reach the remote at all.
+    $status = 'offline (using cached copy)'
+  }
+  elseif ($remoteSha -eq $localSha) {
+    $status = 'current'
+  }
+  elseif ((Invoke-GitQuiet @('-C', $dest, 'fetch', '--depth', '1', '-q', 'origin', 'HEAD')) -and
+          (Invoke-GitQuiet @('-C', $dest, 'reset', '--hard', '-q', 'FETCH_HEAD'))) {
     $status = 'updated'
   }
   else {
+    # Remote has moved but the transfer failed — the cache is now known-stale.
     $status = 'offline (using cached copy)'
   }
 }

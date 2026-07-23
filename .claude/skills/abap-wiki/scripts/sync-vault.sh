@@ -7,7 +7,7 @@
 #
 # Output (key=value lines):
 #   VAULT_PATH=<absolute path to the local clone>
-#   STATUS=cloned | updated | repaired | offline (using cached copy)
+#   STATUS=cloned | updated | current | repaired | offline (using cached copy)
 #   LATEST=<short sha> <date> — <subject>
 #   PAGES=<number of vault pages, excluding raw/>
 #
@@ -62,10 +62,22 @@ elif [ ! -e "${DEST}" ]; then
     exit 1
   fi
 else
-  if git_q -C "${DEST}" fetch --depth 1 -q origin HEAD &&
-     git_q -C "${DEST}" reset --hard -q FETCH_HEAD; then
+  # Ask the remote for its HEAD sha only — a ref advertisement, no object
+  # transfer. If it matches what we already have, skip the fetch entirely and
+  # answer from the cache.
+  LOCAL_SHA=$(git_q -C "${DEST}" rev-parse HEAD)
+  REMOTE_SHA=$(git_q -C "${DEST}" ls-remote origin HEAD | awk '{print $1}')
+
+  if [ -z "${REMOTE_SHA}" ]; then
+    # Could not reach the remote at all.
+    STATUS="offline (using cached copy)"
+  elif [ "${REMOTE_SHA}" = "${LOCAL_SHA}" ]; then
+    STATUS="current"
+  elif git_q -C "${DEST}" fetch --depth 1 -q origin HEAD &&
+       git_q -C "${DEST}" reset --hard -q FETCH_HEAD; then
     STATUS="updated"
   else
+    # Remote has moved but the transfer failed — the cache is now known-stale.
     STATUS="offline (using cached copy)"
   fi
 fi
