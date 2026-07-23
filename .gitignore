@@ -1,6 +1,9 @@
 # Obsidian per-user session state — changes constantly, never share
 .obsidian/workspace.json
 
+# Claude Code per-user local settings — never share (the skills/ folder IS shared)
+.claude/settings.local.json
+
 # OS noise
 .DS_Store
 
