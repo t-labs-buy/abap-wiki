@@ -988,6 +988,22 @@ CRITICAL RULES — follow these exactly or the vault breaks:
     Conflicts are resolved only by a human decision (a Decision page or a
     revision to one) — never by the ingest choosing a winner.
 
+18. MODAL VERB FIDELITY: Preserve the original meaning and use of modal verbs —
+    "shall", "must", "may", "should", "will". In functional/technical specs,
+    coding standards, and compliance requirements these are NORMATIVE, not
+    stylistic: "the job SHALL write a BAL application-log entry" is a hard
+    requirement; "may" is optional; "should" is a recommendation. Never soften,
+    strengthen, or paraphrase a modal verb away. When a requirement is
+    normative, carry the source's exact wording into the page.
+
+19. NO UNSUPPORTED CONTENT: Do not include information whose supporting evidence
+    is not in the source document. Do not fill silence with general SAP
+    knowledge, plausible defaults, or invented specifics (table names, BAPI
+    names, transaction codes, numbers, dates, owners). Where the source is
+    silent, an omitted section or an explicit "not stated in source" is correct.
+    The ONE exception is business rationale reconstructed from ABAP source code
+    under rule 12 — which must carry status: draft and tags: [ai-generated].
+
 Job:
 1. Triage the document per the constitution (workstream-specific → Zone 02,
    reusable learning → Zone 03, standard/landscape → Zone 01, team ops → Zone 04)
