@@ -137,8 +137,8 @@ Read whole pages rather than grep fragments. Frontmatter carries `status`,
 - **Never** answer from anything under `raw/` — unprocessed source material
   (transcripts, drops), not vault knowledge. Do not quote it.
 - **Cite every page** you drew on, using the structured format below. Every
-  claim that comes from the vault carries a citation; a sentence without one
-  must be your own framing, never vault content presented as unsourced fact.
+  claim that comes from the vault carries a citation marker; a sentence without
+  one must be your own framing, never vault content presented as unsourced fact.
 - **Do not include information whose supporting evidence is not in the vault.**
 - Note staleness when it matters: an old `updated:` date, or `status:` of
   `draft` / `parked`.
@@ -156,22 +156,48 @@ Citations are structured so they can be checked, not just read. A citation that
 names a page which does not exist is a fabrication, and the format must make
 that catchable by a script rather than only by a reader who knows the vault.
 
-Format — a **backtick-wrapped code span**, grouping cited pages by their `type:`
-frontmatter value:
+**Page names never appear in the body of the answer.** They clutter the prose
+they are meant to support. Instead the body carries a small numbered marker, and
+the page names live in a `Sources` list at the end.
+
+### In the body — a superscript marker
+
+Put a superscript digit immediately after the sentence's closing punctuation,
+with no space:
 
 ```
-`Vault: <type> (<Page Name>, <Page Name>); <type> (<Page Name>)`
+… that is not replicated into FSCM.¹
+```
+
+- Use the superscript characters `¹²³⁴⁵⁶⁷⁸⁹`, combining them past nine (`¹⁰`,
+  `¹¹`). Never write a bare `[1]` — a bracketed number is parsed as a markdown
+  shortcut reference link and terminal renderers drop it silently, leaving the
+  claim looking uncited.
+- Number sources in the order they are first cited, starting at 1.
+- **Reuse a number** when a later claim rests on the same page or page set. Do
+  not mint a new number for a source already listed.
+- One marker per claim, not per page: a claim supported by three pages gets one
+  marker whose Sources entry names all three.
+- Markers attach to claims, not to headings, table rows' every cell, or bullet
+  fragments that share a source with the bullet above them.
+
+### At the end — the Sources list
+
+Close the answer with a `---` rule, a bold `**Sources**` line, and a numbered
+list. Each entry is a **backtick-wrapped code span** grouping that entry's pages
+by their `type:` frontmatter value:
+
+```
+<n>. `<type> (<Page Name>, <Page Name>); <type> (<Page Name>)`
 ```
 
 Rules:
 
-- **Always wrap the whole citation in backticks.** This is not cosmetic. A bare
-  `[Vault: …]` is parsed as a markdown shortcut reference link; with no matching
-  link definition, terminal renderers drop it silently — the model emits a
-  perfect citation and the reader sees nothing. A code span cannot be parsed as
-  a link, renders literally everywhere (terminal, Obsidian, GitHub), and keeps
-  page names intact even when the citation wraps onto a new line.
-- **Never use square brackets around a citation**, for the reason above.
+- **Always wrap each entry in backticks.** This is not cosmetic. A code span
+  cannot be parsed as a link, renders literally everywhere (terminal, Obsidian,
+  GitHub), and keeps page names intact even when the entry wraps onto a new
+  line.
+- **Never use square brackets around page names.**
 - **Use the page name exactly as it appears in the filename, without `.md`** —
   not the `title:` field, not a paraphrase, not a shortened form. This is what
   makes a citation verifiable.
@@ -181,24 +207,37 @@ Rules:
 - Separate pages of the same type with `,`; separate type groups with `;`.
 - **Never list more than 5 page names in one group.** List the 5 most relevant
   and add `+more`.
-- Place the citation at the end of the sentence or clause it supports, not in a
-  bundle at the end of the answer.
+- Every marker in the body has exactly one matching entry, and every entry has
+  at least one marker pointing at it. No orphans in either direction.
 
-Example (shown fenced so the backticks are visible — in an answer you write the
-code span inline, in the flow of the sentence):
+### Example
 
 ```
 Credit-blocked key-account orders are released by a custom periodic job rather
 than by standard FSCM configuration, because the insured-limit data lives in a
-legacy table that is not replicated into FSCM `Vault: decision (Decision - OTC - Custom credit auto-release job - 2026-07-14); development (OTC - E-001 - Credit Auto-Release Job)`.
+legacy table that is not replicated into FSCM.¹
+
+Wave 2 is estimated at 41 person-days across 12 objects.²
+
+---
+
+**Sources**
+
+1. `decision (Decision - OTC - Custom credit auto-release job - 2026-07-14); development (OTC - E-001 - Credit Auto-Release Job)`
+2. `estimation (OTC - Estimation - Wave 2 WRICEF list - 2026-07-20)`
 ```
 
-Before sending an answer, check that every citation you wrote opens and closes
-with a backtick. An uncited claim and an invisibly-cited claim look identical to
-the reader.
+Before sending an answer, check that every Sources entry opens and closes with a
+backtick, and that the marker numbers and entry numbers line up. An uncited
+claim and an invisibly-cited claim look identical to the reader.
 
-Flags stay in prose, not in the citation: say plainly when a page is `draft`,
-`ai-generated` (unvalidated), stale, or carries a CONFLICT block.
+For a one-line answer drawn from a single page, the rule still holds — one
+marker, one Sources entry. Do not fall back to an inline page name.
+
+Flags stay in the prose of the answer, not in the Sources list: say plainly, at
+the claim itself, when a page is `draft`, `ai-generated` (unvalidated), stale,
+or carries a CONFLICT block. A reader who never scrolls to Sources must still
+see the caveat.
 
 ## Scope
 
