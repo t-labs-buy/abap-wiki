@@ -156,14 +156,22 @@ Citations are structured so they can be checked, not just read. A citation that
 names a page which does not exist is a fabrication, and the format must make
 that catchable by a script rather than only by a reader who knows the vault.
 
-Format — group cited pages by their `type:` frontmatter value:
+Format — a **backtick-wrapped code span**, grouping cited pages by their `type:`
+frontmatter value:
 
 ```
-[Vault: <type> (<Page Name>, <Page Name>); <type> (<Page Name>)]
+`Vault: <type> (<Page Name>, <Page Name>); <type> (<Page Name>)`
 ```
 
 Rules:
 
+- **Always wrap the whole citation in backticks.** This is not cosmetic. A bare
+  `[Vault: …]` is parsed as a markdown shortcut reference link; with no matching
+  link definition, terminal renderers drop it silently — the model emits a
+  perfect citation and the reader sees nothing. A code span cannot be parsed as
+  a link, renders literally everywhere (terminal, Obsidian, GitHub), and keeps
+  page names intact even when the citation wraps onto a new line.
+- **Never use square brackets around a citation**, for the reason above.
 - **Use the page name exactly as it appears in the filename, without `.md`** —
   not the `title:` field, not a paraphrase, not a shortened form. This is what
   makes a citation verifiable.
@@ -176,15 +184,18 @@ Rules:
 - Place the citation at the end of the sentence or clause it supports, not in a
   bundle at the end of the answer.
 
-Example (fenced so the page names stay intact — never let a citation wrap onto
-a line starting with `-`, which markdown renders as a list item and corrupts the
-page name):
+Example (shown fenced so the backticks are visible — in an answer you write the
+code span inline, in the flow of the sentence):
 
 ```
 Credit-blocked key-account orders are released by a custom periodic job rather
 than by standard FSCM configuration, because the insured-limit data lives in a
-legacy table that is not replicated into FSCM [Vault: decision (Decision - OTC - Custom credit auto-release job - 2026-07-14); development (OTC - E-001 - Credit Auto-Release Job)].
+legacy table that is not replicated into FSCM `Vault: decision (Decision - OTC - Custom credit auto-release job - 2026-07-14); development (OTC - E-001 - Credit Auto-Release Job)`.
 ```
+
+Before sending an answer, check that every citation you wrote opens and closes
+with a backtick. An uncited claim and an invisibly-cited claim look identical to
+the reader.
 
 Flags stay in prose, not in the citation: say plainly when a page is `draft`,
 `ai-generated` (unvalidated), stale, or carries a CONFLICT block.
