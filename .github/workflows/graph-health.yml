@@ -1,0 +1,63 @@
+name: Vault Graph Health
+
+on:
+  push:
+    paths:
+      - "01-standards/**"
+      - "02-workstreams/**"
+      - "03-intelligence/**"
+      - "04-internal/**"
+      - ".github/scripts/graph-health.py"
+  pull_request:
+    paths:
+      - "01-standards/**"
+      - "02-workstreams/**"
+      - "03-intelligence/**"
+      - "04-internal/**"
+  schedule:
+    - cron: "0 8 * * 1" # Mondays 08:00 UTC, an hour after the ingest sweep
+  workflow_dispatch:
+
+concurrency:
+  group: graph-health-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # read-only: this check never writes to the vault
+
+jobs:
+  graph-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vault
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # No dependencies to install — the checker is standard library only.
+      - name: Check wikilink graph
+        # --strict fails the run on a hard violation (floating page, dead end,
+        # missing or stale backlink). The baseline was clean when this was
+        # added, so strict catches regressions from day one. Drop the flag if
+        # it ever becomes noisier than it is useful.
+        # The `|| status=$?` form matters: steps run under `bash -e`, so a bare
+        # failing command would abort before the summary is ever written.
+        run: |
+          report="$RUNNER_TEMP/graph-health.md"
+          status=0
+          python3 .github/scripts/graph-health.py --out "$report" --strict || status=$?
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+      # Candidate questions are prompts for the curator, not violations — this
+      # step reports and never fails. Runs even when the graph check failed, so
+      # a broken link does not hide the week's open gaps.
+      - name: Generate candidate questions
+        if: always()
+        run: |
+          report="$RUNNER_TEMP/questions.md"
+          python3 .github/scripts/question-gen.py --out "$report"
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
