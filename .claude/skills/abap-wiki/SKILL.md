@@ -45,14 +45,15 @@ script checks the remote's HEAD before transferring anything, skips the pull
 when nothing has changed, repairs a damaged copy, and degrades safely when
 offline.
 
-It prints four lines:
+It prints five lines:
 
-| Line          | Meaning                                                                        |
-| ------------- | ------------------------------------------------------------------------------ |
-| `VAULT_PATH=` | absolute path of the local clone — normally `~/.cache/claude-vaults/abap-wiki` |
-| `STATUS=`     | `current`, `updated`, `cloned`, `repaired`, or `offline (using cached copy)`   |
-| `LATEST=`     | newest commit in the copy you are about to read                                |
-| `PAGES=`      | number of vault pages available                                                |
+| Line            | Meaning                                                                        |
+| --------------- | ------------------------------------------------------------------------------ |
+| `VAULT_PATH=`   | absolute path of the local clone — normally `~/.cache/claude-vaults/abap-wiki` |
+| `STATUS=`       | `current`, `updated`, `cloned`, `repaired`, or `offline (using cached copy)`   |
+| `LATEST=`       | newest commit in the copy you are about to read                                |
+| `PAGES=`        | number of vault pages available                                                |
+| `SKILL_STATUS=` | whether this skill file itself is up to date — see below                       |
 
 **Use the absolute `VAULT_PATH` value literally in every later command and file
 read.** Each command runs in a fresh shell, so a variable you set in one step is
@@ -70,6 +71,18 @@ Handle the status:
   may be out of date and quote the `LATEST` date.
 - The script exits non-zero only when there is no usable copy at all. If that
   happens, report the error rather than answering from general knowledge.
+
+Handle `SKILL_STATUS` — this skill file ships inside the vault repo, so every
+sync fetches the canonical copy and compares it with the one you are running:
+
+- `current` — the installed skill matches what is published. Nothing to do.
+- `stale (update with: cp …)` — the installed copy has fallen behind. Answer the
+  question normally, then tell the user their skill is outdated and show them
+  the `cp` command. Never run it yourself: overwriting a file under the user's
+  home directory is their call, not a side effect of asking a question.
+- `ahead (git checkout …)` — the skill is installed from a repo checkout with
+  local changes. Expected during development; mention it only if relevant.
+- `unknown (nothing to compare)` — no published copy found. Ignore it.
 
 **Do not read the vault from anywhere else.** If the current working directory
 happens to be a clone of the same repo, ignore it — it may hold unpushed or
@@ -123,8 +136,10 @@ Read whole pages rather than grep fragments. Frontmatter carries `status`,
   `03-intelligence/`, `04-internal/`.
 - **Never** answer from anything under `raw/` — unprocessed source material
   (transcripts, drops), not vault knowledge. Do not quote it.
-- **Cite every page** you drew on, by page name, e.g.
-  "From _Decision - OTC - Custom BAPI approach - 2026-07-15_…".
+- **Cite every page** you drew on, using the structured format below. Every
+  claim that comes from the vault carries a citation; a sentence without one
+  must be your own framing, never vault content presented as unsourced fact.
+- **Do not include information whose supporting evidence is not in the vault.**
 - Note staleness when it matters: an old `updated:` date, or `status:` of
   `draft` / `parked`.
 - Flag `ai-generated` pages as **unvalidated** — reconstructed from source
@@ -134,6 +149,45 @@ Read whole pages rather than grep fragments. Frontmatter carries `status`,
 - If the vault does not answer the question, say so plainly: "The vault doesn't
   have this yet — consider ingesting [X]." Do not fill the gap with general SAP
   knowledge, and do not guess.
+
+## Citation format
+
+Citations are structured so they can be checked, not just read. A citation that
+names a page which does not exist is a fabrication, and the format must make
+that catchable by a script rather than only by a reader who knows the vault.
+
+Format — group cited pages by their `type:` frontmatter value:
+
+```
+[Vault: <type> (<Page Name>, <Page Name>); <type> (<Page Name>)]
+```
+
+Rules:
+
+- **Use the page name exactly as it appears in the filename, without `.md`** —
+  not the `title:` field, not a paraphrase, not a shortened form. This is what
+  makes a citation verifiable.
+- `<type>` is the page's `type:` value (`decision`, `development`, `spec`,
+  `gotcha`, `standard`, `stakeholder`, …) — the same controlled vocabulary the
+  vault uses.
+- Separate pages of the same type with `,`; separate type groups with `;`.
+- **Never list more than 5 page names in one group.** List the 5 most relevant
+  and add `+more`.
+- Place the citation at the end of the sentence or clause it supports, not in a
+  bundle at the end of the answer.
+
+Example (fenced so the page names stay intact — never let a citation wrap onto
+a line starting with `-`, which markdown renders as a list item and corrupts the
+page name):
+
+```
+Credit-blocked key-account orders are released by a custom periodic job rather
+than by standard FSCM configuration, because the insured-limit data lives in a
+legacy table that is not replicated into FSCM [Vault: decision (Decision - OTC - Custom credit auto-release job - 2026-07-14); development (OTC - E-001 - Credit Auto-Release Job)].
+```
+
+Flags stay in prose, not in the citation: say plainly when a page is `draft`,
+`ai-generated` (unvalidated), stale, or carries a CONFLICT block.
 
 ## Scope
 

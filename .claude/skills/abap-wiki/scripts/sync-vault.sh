@@ -86,7 +86,34 @@ COMMIT=$(git_q -C "${DEST}" log -1 --format='%h %cd — %s' --date=short)
 # Count only the four content zones (01-… 04-…): excludes raw/, meta/, .git and CI files.
 PAGES=$(find "${DEST}"/0*/ -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
 
+# --- skill self-update check -------------------------------------------------
+# The vault repo carries this skill under .claude/skills/<name>/, and the sync
+# above just fetched it. Compare the published copy with the one actually
+# installed — the directory this script is running from — so a teammate whose
+# install has fallen behind finds out the moment they use the skill. This is the
+# only channel that reaches someone with no checkout of the repo.
+#
+# Warn only. Never overwrite a file under the user's home directory during a
+# query: the point of the check is that a human notices.
+SKILL_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." 2>/dev/null && pwd)
+INSTALLED_SKILL="${SKILL_DIR}/SKILL.md"
+PUBLISHED_SKILL="${DEST}/.claude/skills/${NAME}/SKILL.md"
+
+if [ ! -f "${PUBLISHED_SKILL}" ] || [ ! -f "${INSTALLED_SKILL}" ]; then
+  SKILL_STATUS="unknown (nothing to compare)"
+elif cmp -s "${INSTALLED_SKILL}" "${PUBLISHED_SKILL}"; then
+  SKILL_STATUS="current"
+elif git_q -C "${SKILL_DIR}" rev-parse --is-inside-work-tree >/dev/null; then
+  # Installed from a git checkout (typically a symlink into the repo), so this
+  # copy is a development copy — ahead of or diverged from what is published.
+  # Publish it with git; do NOT tell the user to overwrite their own work.
+  SKILL_STATUS="ahead (git checkout — publish with git, do not overwrite)"
+else
+  SKILL_STATUS="stale (update with: cp '${PUBLISHED_SKILL}' '${INSTALLED_SKILL}')"
+fi
+
 echo "VAULT_PATH=${DEST}"
 echo "STATUS=${STATUS}"
 echo "LATEST=${COMMIT:-unknown}"
 echo "PAGES=${PAGES}"
+echo "SKILL_STATUS=${SKILL_STATUS}"

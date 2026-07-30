@@ -111,7 +111,38 @@ $pages = @($zones | ForEach-Object {
     Get-ChildItem -Path $_.FullName -Filter '*.md' -Recurse -File -Force -ErrorAction SilentlyContinue
   }).Count
 
+# --- skill self-update check -------------------------------------------------
+# The vault repo carries this skill under .claude/skills/<name>/, and the sync
+# above just fetched it. Compare the published copy with the one actually
+# installed — the directory this script is running from — so an install that has
+# fallen behind is reported the moment the skill is used. Warn only; never
+# overwrite a file under the user's profile during a query.
+$scriptPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Path }
+$skillDir = Split-Path (Split-Path $scriptPath -Parent) -Parent
+$installedSkill = Join-Path $skillDir 'SKILL.md'
+$publishedSkill = Join-Path $dest (Join-Path '.claude' (Join-Path 'skills' (Join-Path $name 'SKILL.md')))
+
+if (-not (Test-Path $publishedSkill) -or -not (Test-Path $installedSkill)) {
+  $skillStatus = 'unknown (nothing to compare)'
+}
+else {
+  $installedHash = (Get-FileHash -Algorithm SHA256 $installedSkill).Hash
+  $publishedHash = (Get-FileHash -Algorithm SHA256 $publishedSkill).Hash
+  if ($installedHash -eq $publishedHash) {
+    $skillStatus = 'current'
+  }
+  elseif (Invoke-GitQuiet @('-C', $skillDir, 'rev-parse', '--is-inside-work-tree')) {
+    # Installed from a git checkout — a development copy, ahead of or diverged
+    # from what is published. Publish with git; do not overwrite it.
+    $skillStatus = 'ahead (git checkout — publish with git, do not overwrite)'
+  }
+  else {
+    $skillStatus = "stale (update with: Copy-Item '$publishedSkill' '$installedSkill')"
+  }
+}
+
 Write-Output "VAULT_PATH=$dest"
 Write-Output "STATUS=$status"
 Write-Output "LATEST=$commit"
 Write-Output "PAGES=$pages"
+Write-Output "SKILL_STATUS=$skillStatus"
