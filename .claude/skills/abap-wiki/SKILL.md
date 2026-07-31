@@ -1,6 +1,6 @@
 ---
 name: abap-wiki
-description: "Answer questions from the ABAP knowledge vault (t-labs-buy/abap-wiki) — the team's canonical memory of ABAP delivery: standards, workstreams (OTC, INT), decisions, specs, developments/WRICEF objects, estimations, issues, open questions, patterns, gotchas, troubleshooting, FAQs, runbooks and onboarding. Use whenever someone asks what the team decided, what a custom object does, who owns something, what the standard or convention is, what's still open, or anything else answerable from project knowledge rather than general SAP knowledge. Syncs the latest vault from GitHub first, then answers with page citations."
+description: "Answer questions from the ABAP knowledge vault (t-labs-buy/abap-wiki) — the team's canonical memory of ABAP delivery: standards, workstreams (OTC, INT), decisions, specs, developments/WRICEF objects, estimations, issues, open questions, patterns, gotchas, troubleshooting, FAQs, runbooks and onboarding. Use whenever someone asks what the team decided, what a custom object does, who owns something, what the standard or convention is, what's still open, or anything else answerable from project knowledge rather than general SAP knowledge. Syncs the latest vault from GitHub first, then answers with page citations. Invoked bare, or asked what's in the vault / what can be asked of it, it suggests domain-adapted questions derived from the vault's own content."
 ---
 
 # ABAP Knowledge Vault
@@ -89,7 +89,53 @@ happens to be a clone of the same repo, ignore it — it may hold unpushed or
 half-edited work. Read only from `VAULT_PATH`. (If the user explicitly asks
 about their own working copy, that's the exception.)
 
-## Step 2 — Orient
+## Step 2 — If no question was asked, offer prompts the vault can answer
+
+When the skill is invoked bare (`/abap-wiki` with nothing after it), or the
+user asks some form of "what's in here?" / "what can I ask?", do not guess at a
+question and do not list folder names. Show them prompts derived from what the
+vault actually holds:
+
+```bash
+python3 /ABSOLUTE/VAULT_PATH/.github/scripts/prompt-suggest.py \
+  --root /ABSOLUTE/VAULT_PATH --top 8
+```
+
+Windows: same command with `python` instead of `python3`.
+
+The script is deterministic, reads only the vault, and writes nothing. Every
+question it emits names the page(s) that answer it — so anything it prints can
+be answered immediately by going to Step 3 with that question. It prints a
+one-line vault profile (page count, workstreams, coverage) followed by prompts
+grouped by theme.
+
+Present the profile line, then the questions grouped as printed. Keep the
+`answered by` page names out of the message unless the user asks — they are
+there so you can jump straight to the right page when one is picked. Repeat any
+flag the script prints (`draft`, `unvalidated`, `thin`, `unresolved conflict`)
+next to that question: a reader choosing what to ask deserves to know the answer
+is provisional before they ask it.
+
+Useful variants:
+
+| Situation                                         | Command                                  |
+| ------------------------------------------------- | ---------------------------------------- |
+| User named a workstream ("what's in OTC?")        | `--workstream OTC`                       |
+| User named a topic ("anything on credit blocks?") | `--about credit`                         |
+| Follow-ups after an answer                        | `--near "<page you cited>"` (repeatable) |
+| You only need the questions, cheapest output      | `--format compact`                       |
+
+If `python3` is missing or the script errors, say so in one line and fall back
+to reading `meta/index.md` and describing the vault's coverage from it. Never
+invent suggested questions: a prompt the vault cannot answer wastes the reader's
+next turn.
+
+This script only suggests questions the vault **can** answer. Its counterpart,
+`question-gen.py`, lists what the vault **cannot** answer yet — gaps for the
+curator. If the user is asking what's missing rather than what's known, that's
+the one to run (`--root` the same way).
+
+## Step 3 — Orient
 
 Read `<VAULT_PATH>/meta/index.md` — the master navigation catalog, organised by
 zone, listing every page with a one-line description. Choose the pages worth
@@ -125,12 +171,12 @@ Structure:
 Pages link to each other with `[[wikilinks]]` and end with a `## Linked from`
 section — follow both directions when an answer spans several pages.
 
-## Step 3 — Read the relevant pages
+## Step 4 — Read the relevant pages
 
 Read whole pages rather than grep fragments. Frontmatter carries `status`,
 `owner`, `updated` and `workstream`, which often matter to the answer.
 
-## Step 4 — Answer
+## Step 5 — Answer
 
 - Answer **only** from pages in `01-standards/`, `02-workstreams/`,
   `03-intelligence/`, `04-internal/`.
@@ -238,6 +284,32 @@ Flags stay in the prose of the answer, not in the Sources list: say plainly, at
 the claim itself, when a page is `draft`, `ai-generated` (unvalidated), stale,
 or carries a CONFLICT block. A reader who never scrolls to Sources must still
 see the caveat.
+
+## Step 6 — Offer follow-ups
+
+After the Sources list, offer up to three related questions drawn from the
+pages around the ones you just cited:
+
+```bash
+python3 /ABSOLUTE/VAULT_PATH/.github/scripts/prompt-suggest.py \
+  --root /ABSOLUTE/VAULT_PATH --format compact --top 3 \
+  --near "<page you cited>" --near "<another page you cited>"
+```
+
+`--near` walks the link graph out from those pages, so the follow-ups are
+neighbours of the answer rather than generic vault highlights. Print them under
+a **You could also ask** heading, below the Sources list, verbatim and without
+citation markers — they are questions, not claims, and markers must keep
+pointing only at what you actually asserted.
+
+Skip the follow-ups when the script returns nothing, when the user asked a
+narrow factual question they clearly wanted closed, or when they are working
+through a list of their own. Three is a ceiling, not a target.
+
+When the vault did **not** answer the question, this step earns its keep: run
+the same script with `--about <the key term>` instead of `--near`, and offer
+what the vault does hold nearby. "The vault doesn't have this yet" plus two
+things it does have beats a dead end.
 
 ## Scope
 

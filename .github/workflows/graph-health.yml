@@ -61,3 +61,21 @@ jobs:
           report="$RUNNER_TEMP/questions.md"
           python3 .github/scripts/question-gen.py --out "$report"
           cat "$report" >> "$GITHUB_STEP_SUMMARY"
+
+      # The starter prompts the skill shows are only worth anything if every
+      # one of them is answerable. This gate asserts that against a synthetic
+      # vault, so a regression fails here rather than in front of a reader.
+      - name: Test prompt suggester
+        if: always()
+        run: python3 .github/scripts/tests/prompt_suggest_test.py
+
+      # The reader-facing counterpart to the candidate questions: what the
+      # vault CAN answer. The abap-wiki skill runs this same script against its
+      # local clone, so a crash on real vault content surfaces here rather than
+      # mid-question. Never fails the run — these are prompts, not violations.
+      - name: Suggest starter prompts
+        if: always()
+        run: |
+          report="$RUNNER_TEMP/prompts.md"
+          python3 .github/scripts/prompt-suggest.py --top 12 --out "$report"
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"

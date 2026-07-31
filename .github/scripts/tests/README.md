@@ -1,4 +1,24 @@
-# Extractor tests
+# Tests
+
+## Prompt suggester
+
+`prompt_suggest_test.py` gates `../prompt-suggest.py`, the starter prompts the
+`abap-wiki` skill offers when nobody has asked anything yet. No dependencies —
+it builds a synthetic vault in a temp directory and runs the script against it:
+
+```bash
+python3 prompt_suggest_test.py    # exits non-zero on regression
+```
+
+It asserts the promise the skill makes to a reader — every question offered is
+answered by a page that exists — plus the filters that keep that promise
+honest: archived pages excluded, near-empty pages dropped, draft and
+`ai-generated` pages flagged rather than presented as settled, role tags kept
+out of cross-workstream questions, `--near`/`--about`/`--workstream` filtering
+to what they claim, and byte-identical output on identical input. It runs in
+the Vault Graph Health workflow.
+
+## Extractor tests
 
 Content-level tests for the document extractors in `../abap-ingest.py`.
 
