@@ -1,19 +1,35 @@
 name: Vault Graph Health
 
 on:
+  # Content changes, and every file this job runs. A checker whose own changes
+  # do not trigger it is a checker nobody is checking: vault_model.py is shared
+  # by both graph tools, and the prompt-suggest gate only earns its keep if it
+  # runs when the suggester changes.
+  # (Listed twice: GitHub Actions does not resolve YAML anchors.)
   push:
     paths:
       - "01-standards/**"
       - "02-workstreams/**"
       - "03-intelligence/**"
       - "04-internal/**"
+      - ".github/scripts/vault_model.py"
       - ".github/scripts/graph-health.py"
+      - ".github/scripts/question-gen.py"
+      - ".github/scripts/prompt-suggest.py"
+      - ".github/scripts/tests/prompt_suggest_test.py"
+      - ".github/workflows/graph-health.yml"
   pull_request:
     paths:
       - "01-standards/**"
       - "02-workstreams/**"
       - "03-intelligence/**"
       - "04-internal/**"
+      - ".github/scripts/vault_model.py"
+      - ".github/scripts/graph-health.py"
+      - ".github/scripts/question-gen.py"
+      - ".github/scripts/prompt-suggest.py"
+      - ".github/scripts/tests/prompt_suggest_test.py"
+      - ".github/workflows/graph-health.yml"
   schedule:
     - cron: "0 8 * * 1" # Mondays 08:00 UTC, an hour after the ingest sweep
   workflow_dispatch:
