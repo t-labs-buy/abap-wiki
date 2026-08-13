@@ -2,15 +2,15 @@
 
 Master navigation catalog, organized by zone. **Updated on every ingest** — when a page is created or renamed, its entry here changes too.
 
-_Last updated: 2026-07-20_
+_Last updated: 2026-08-13_
+
+> Vault reset on 2026-08-13. No content pages yet — the structure below is the empty skeleton. Drop source material into `raw/inbox/` to begin.
 
 ## 01-standards
 
 ### Coding
 
-- [[Standard - ABAP Naming Conventions]] — custom object prefixes, variable scope/type prefixes, OO and program naming
-- [[Standard - ABAP Programming Guidelines]] — programming rules, general considerations, header/change documentation
-- [[Standard - ABAP Performance Guidelines]] — ECC + S/4HANA (CDS/AMDP/New Open SQL) performance rules and analysis tools
+- _(none yet)_
 
 ### Architecture
 
@@ -24,55 +24,45 @@ _Last updated: 2026-07-20_
 
 ### Workstreams
 
-- [[OTC]] — Order-to-Cash workstream overview
-- [[INT]] — Integrations workstream overview (first scope: AD SAP User Integration)
+- _(none yet)_
 
 ### Stakeholders
 
-- [[OTC - Anna Larsen]] — OTC
-- [[OTC - Jonas Weber]] — OTC
-- [[OTC - Priya Nair]] — OTC
-- [[OTC - Senthil Palanivelu]] — OTC
-- [[OTC - Andreas Kvarnö]] — OTC (Master data, CGI)
-- [[OTC - Madeleine Jacobsson]] — OTC (Order-to-Cash, ES)
-- [[OTC - Tomas Kuniholm]] — OTC (IT, ES)
-- [[OTC - Hashini]] — OTC (Developer, CR044)
-- [[INT - Ramalakshmi]] — INT (Developer / owner)
-- [[INT - Vedakala]] — INT (Code reviewer; alias of Veda)
+- _(none yet)_
 
 ### Meetings
 
-- [[OTC - Design Review - 2026-07-14]] — credit-block auto-release design review
+- _(none yet)_
 
 ### Recent Decisions
 
-- [[Decision - OTC - Custom credit auto-release job - 2026-07-14]] — custom periodic job over FSCM config
-- [[Decision - OTC - Address type removed from validation criteria - 2026-01-29]] — v3.0: only relevant address types loaded to ZSD_ADR_VLD
+- _(none yet)_
 
 ### Specs
 
-- [[OTC - Spec - Credit Block Auto-Release]] — spec (draft)
-- [[OTC - Spec - BP Address Validation]] — BP address validation against Geposit reference table ZSD_ADR_VLD (draft)
+- _(none yet)_
 
 ### Developments
 
-- [[OTC - E-001 - Credit Auto-Release Job]] — ZSD_CREDIT_AUTORELEASE development
-- [[OTC - CR045 - BP Address Validation]] — BP address validation enhancement + detection report (draft)
-- [[INT - ZADUSR_SYNC]] — AD SAP User Integration report (CR INT1.0), code-reviewed 2026-03-26 (draft)
+- _(none yet)_
 
 ### Estimations
 
-- [[OTC - Estimation - Credit Auto-Release Job - 2026-07-14]] — 8 PD initial estimate
+- _(none yet)_
+
+### Issues
+
+- _(none yet)_
 
 ### Open Questions
 
-- [[Open-Questions/OTC|OTC]] — rolling open-questions page for OTC
+- _(none yet)_
 
 ## 03-intelligence
 
 ### Patterns
 
-- [[Pattern - BAPI_TRANSACTION_COMMIT WAIT in batch jobs]] — seen in P2P and OTC
+- _(none yet)_
 
 ### Lessons Learned
 
@@ -80,7 +70,7 @@ _Last updated: 2026-07-20_
 
 ### Gotchas
 
-- [[Gotcha - BAPI_TRANSACTION_COMMIT wait flag]] — WAIT='X' avoids 'order still locked'
+- _(none yet)_
 
 ### Troubleshooting Guides
 
@@ -88,9 +78,8 @@ _Last updated: 2026-07-20_
 
 ### FAQs
 
-- [[FAQ - Credit Auto-Release Integration]] — technical open questions
-- [[FAQ - Transporting Background Jobs]] — process & transport open question
+- _(none yet)_
 
 ## 04-internal
 
-- [[Process - Code Review]] — pre-transport code-review quality gates (SLIN, ATC, checklist, unit test)
+- _(none yet)_
