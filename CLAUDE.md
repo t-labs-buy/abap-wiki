@@ -773,6 +773,7 @@ Multiple team members use this vault simultaneously.
 - **`meta/inbox.md`** — Deduplication table for processed files.
 - **`meta/entities.md`** — Registry of canonical names (workstreams, modules, systems, vendors) and their aliases.
 - **`meta/conventions.md`** — Naming, frontmatter, linking conventions (human-readable reference).
+- **`meta/communities.md`** — Generated cluster map of the wikilink graph: one summary per community of densely-linked pages, refreshed on every ingest. It is how a question about the vault as a whole gets answered — navigation for cross-cutting questions, never a citation source. Written by `community-summarize.py` alone; do not hand-edit.
 
 ---
 

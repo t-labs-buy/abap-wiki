@@ -49,6 +49,17 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python .github/scripts/abap-ingest.py
 
+      # The graph only exists once the ingest has written its pages, so this
+      # runs after. `if: always()` because a partially-failed ingest still
+      # changed the graph, and stale summaries are worse than partial ones.
+      # Incremental: untouched communities reuse their existing summary and
+      # cost no tokens.
+      - name: Refresh community summaries
+        if: always()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python .github/scripts/community-summarize.py --root .
+
       - name: Commit and push vault updates
         run: |
           git config user.name "ABAP Vault"

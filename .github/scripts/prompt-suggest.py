@@ -41,6 +41,7 @@ import os
 import re
 import sys
 
+from vault_communities import partition
 from vault_model import Vault, WIKILINK_RE, parse_frontmatter
 
 # --------------------------------------------------------------------------
@@ -470,7 +471,32 @@ def cross_cutting(v, today):
                 "cross:handover", paths, CROSS_THEME, slug, "", [], 10.5)
 
 
-GENERATORS = (per_page_suggestions, faq_questions, cross_cutting)
+
+def community_questions(v, today):
+    """One question per cluster of pages that bridges workstreams.
+
+    graph-health flags these as Pattern Promotion candidates and
+    meta/communities.md summarises them. This is the same signal in the form a
+    reader can use: the questions global search is good at and grep is not,
+    because the pages answering them share structure rather than vocabulary.
+    """
+    slugs = set(v.slugs_in_use()) | set(v.workstreams())
+    for com in partition(v):
+        if not com.spans_workstreams:
+            continue
+        live = [p for p in com.members if v.by_path[p].status not in SKIP_STATUSES]
+        if len(live) < 3:
+            continue
+        hub = next((p for p in com.hubs if p in live), live[0])
+        a, b = com.workstreams[:2]
+        yield Suggestion(
+            f"What connects the {a} and {b} work around "
+            f"{subject_of(v.by_path[hub], slugs)}?",
+            "cross:community", sorted(live), CROSS_THEME, "", "", [], 12.5)
+
+
+GENERATORS = (per_page_suggestions, faq_questions, cross_cutting,
+              community_questions)
 
 
 # --------------------------------------------------------------------------

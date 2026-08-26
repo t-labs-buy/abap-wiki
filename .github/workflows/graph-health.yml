@@ -13,10 +13,13 @@ on:
       - "03-intelligence/**"
       - "04-internal/**"
       - ".github/scripts/vault_model.py"
+      - ".github/scripts/vault_communities.py"
       - ".github/scripts/graph-health.py"
+      - ".github/scripts/community-summarize.py"
       - ".github/scripts/question-gen.py"
       - ".github/scripts/prompt-suggest.py"
       - ".github/scripts/tests/prompt_suggest_test.py"
+      - ".github/scripts/tests/community_test.py"
       - ".github/workflows/graph-health.yml"
   pull_request:
     paths:
@@ -25,10 +28,13 @@ on:
       - "03-intelligence/**"
       - "04-internal/**"
       - ".github/scripts/vault_model.py"
+      - ".github/scripts/vault_communities.py"
       - ".github/scripts/graph-health.py"
+      - ".github/scripts/community-summarize.py"
       - ".github/scripts/question-gen.py"
       - ".github/scripts/prompt-suggest.py"
       - ".github/scripts/tests/prompt_suggest_test.py"
+      - ".github/scripts/tests/community_test.py"
       - ".github/workflows/graph-health.yml"
   schedule:
     - cron: "0 8 * * 1" # Mondays 08:00 UTC, an hour after the ingest sweep
@@ -84,6 +90,14 @@ jobs:
       - name: Test prompt suggester
         if: always()
         run: python3 .github/scripts/tests/prompt_suggest_test.py
+
+      # meta/communities.md is read by the skill to answer questions about the
+      # vault as a whole, so its guarantees are load-bearing: stable community
+      # signatures (or every ingest re-summarises everything), no wikilinks in
+      # a generated meta file, and no page name that does not exist.
+      - name: Test community summaries
+        if: always()
+        run: python3 .github/scripts/tests/community_test.py
 
       # The reader-facing counterpart to the candidate questions: what the
       # vault CAN answer. The abap-wiki skill runs this same script against its

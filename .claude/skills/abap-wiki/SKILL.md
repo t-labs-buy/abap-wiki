@@ -1,6 +1,6 @@
 ---
 name: abap-wiki
-description: "Answer questions from the ABAP knowledge vault (t-labs-buy/abap-wiki) — the team's canonical memory of ABAP delivery: standards, workstreams (OTC, INT), decisions, specs, developments/WRICEF objects, estimations, issues, open questions, patterns, gotchas, troubleshooting, FAQs, runbooks and onboarding. Use whenever someone asks what the team decided, what a custom object does, who owns something, what the standard or convention is, what's still open, or anything else answerable from project knowledge rather than general SAP knowledge. Syncs the latest vault from GitHub first, then answers with page citations. Invoked bare, or asked what's in the vault / what can be asked of it, it suggests domain-adapted questions derived from the vault's own content."
+description: "Answer questions from the ABAP knowledge vault (t-labs-buy/abap-wiki) — the team's canonical memory of ABAP delivery: standards, workstreams (OTC, INT), decisions, specs, developments/WRICEF objects, estimations, issues, open questions, patterns, gotchas, troubleshooting, FAQs, runbooks and onboarding. Use whenever someone asks what the team decided, what a custom object does, who owns something, what the standard or convention is, what's still open, what themes recur across workstreams, or anything else answerable from project knowledge rather than general SAP knowledge. Syncs the latest vault from GitHub first, then answers with page citations. Invoked bare, or asked what's in the vault / what can be asked of it, it suggests domain-adapted questions derived from the vault's own content."
 ---
 
 # ABAP Knowledge Vault
@@ -166,10 +166,58 @@ Structure:
 | `02-workstreams/`  | per workstream: meetings, decisions, specs, developments, issues, estimations, open questions |
 | `03-intelligence/` | patterns, lessons learned, gotchas, troubleshooting guides, FAQs                              |
 | `04-internal/`     | contacts, onboarding, processes, runbooks                                                     |
-| `meta/`            | index, entity registry, ingest log — navigation aids, not answers                             |
+| `meta/`            | index, entity registry, community map, ingest log — navigation aids, not answers              |
 
 Pages link to each other with `[[wikilinks]]` and end with a `## Linked from`
 section — follow both directions when an answer spans several pages.
+
+## Step 3a — Route: a question about a thing, or about the vault?
+
+Two kinds of question need two different searches, and using the wrong one
+wastes the turn.
+
+**Local — the question names a thing.** A specific object, decision, person,
+meeting or document: "what does ZSD_ORDER_CHECK do?", "who owns the credit
+release job?", "what did we decide about the custom BAPI?"
+
+Nothing changes: index → alias normalisation → `grep -ril` → read whole pages.
+
+**Global — the question is about the corpus.** "What are the recurring themes
+across our workstreams?", "what should a new joiner know before touching OTC?",
+"where is our biggest knowledge risk?", "what have we learned this phase?"
+Signals: aggregate or superlative framing (*main, recurring, across, overall,
+biggest, themes, so far*), no named entity at all, or an entity as broad as a
+whole workstream.
+
+Grep cannot answer these. The answer is spread across pages that share no
+vocabulary with the question, so a literal search returns nothing or everything.
+Read this instead:
+
+```
+<VAULT_PATH>/meta/communities.md
+```
+
+It holds one summary per cluster of the wikilink graph — pages that link to each
+other far more than they link to the rest of the vault, which is what a "theme"
+in this vault actually is. Read the `## Index` table first, pick the two or
+three communities the question touches, read those sections, then open the pages
+each one lists under **Start here**.
+
+**Both — a broad question about a named area.** "What's the state of OTC?",
+"what's going on with our IDoc work?" Communities first, to learn the shape of
+the area; then grep for the specifics they point at.
+
+### Three rules that keep a global answer honest
+
+- **Never cite `meta/communities.md`.** It is navigation, exactly like
+  `meta/index.md`. Every claim still cites the page it came from, in the Sources
+  format below. A community is not a page, and a reader cannot go and check one.
+- **A summary is a lead, not evidence.** It was written by a model from the
+  pages beneath it and can fall behind an edit. Before asserting something a
+  summary told you, open the page and confirm it there.
+- **If the file is missing, empty, or says "no communities yet"**, say so in one
+  line and fall back to the grep path. A vault with no linked pages has no
+  themes, and inventing some is exactly the failure this skill exists to prevent.
 
 ## Step 4 — Read the relevant pages
 

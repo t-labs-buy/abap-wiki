@@ -18,6 +18,30 @@ out of cross-workstream questions, `--near`/`--about`/`--workstream` filtering
 to what they claim, and byte-identical output on identical input. It runs in
 the Vault Graph Health workflow.
 
+## Community summaries
+
+`community_test.py` gates `../vault_communities.py` and
+`../community-summarize.py`, which build `meta/communities.md` — the cluster map
+the `abap-wiki` skill reads to answer questions about the vault as a whole.
+
+```bash
+python3 community_test.py    # exits non-zero on regression
+```
+
+Four properties are load-bearing and each is asserted here. Community
+signatures must be stable, or every ingest re-summarises the whole vault
+instead of just what changed. The generated file must contain no
+`[[wikilinks]]` and must not alter what graph-health sees, since a generated
+meta file that mints edges makes the checker demand backlinks for pages nobody
+wrote. Every page name printed must exist — the same promise
+`prompt_suggest_test.py` enforces for suggested prompts. And with no API key or
+no `anthropic` package the script must still exit 0 with usable scaffolding.
+
+It also covers the cache: an unchanged vault reuses every summary, an edited
+page invalidates its own community and no other, `--dry-run` writes nothing and
+`--force` ignores the cache. No dependencies and no API calls — it builds a
+synthetic vault in a temp directory and stands in for the model.
+
 ## Extractor tests
 
 Content-level tests for the document extractors in `../abap-ingest.py`.

@@ -11,6 +11,8 @@ Builds the wikilink graph from every content page in zones 01-04 and reports:
                                                             Rule), reported for info
   - communities found by modularity clustering, flagged
     when one spans 2+ workstreams                        -> Pattern Promotion Rule
+  - whether meta/communities.md still describes the
+    graph as it now stands                               -> global-search layer
 
 Read-only: writes no vault pages. Standard library only, no third-party deps.
 
@@ -19,91 +21,36 @@ Usage:
 
 --strict exits non-zero when a hard violation is found (floating pages, dead
 ends, backlink asymmetry). Unresolved links never fail the run: the constitution
-explicitly allows forward links to pages that do not exist yet.
+explicitly allows forward links to pages that do not exist yet. Nor do stale
+community summaries: they mean the next ingest has work to do, not that the
+vault is broken.
 """
 
 import argparse
 import collections
+import os
+import re
 import sys
 
+from vault_communities import partition
 from vault_model import Vault
 
-# Clustering resolution. 1.0 is standard modularity; higher splits more finely.
-RESOLUTION = 1.0
+COMMUNITIES_MD = os.path.join("meta", "communities.md")
+SIG_MARKER_RE = re.compile(r"<!--\s*sig:\s*([0-9a-f]+)\s+body:\s*([0-9a-f]+)\s*-->")
 
 
-# --------------------------------------------------------------------------
-# Community detection (Louvain modularity optimisation)
-# --------------------------------------------------------------------------
-#
-# GraphRAG uses hierarchical Leiden. Leiden adds a refinement phase that
-# guarantees every community is internally well-connected; on a graph this size
-# the two agree, so this is plain Louvain — deterministic node ordering, no
-# randomness, no third-party dependency.
+def recorded_summaries(root):
+    """Signature -> body hash, as recorded in meta/communities.md.
 
-def louvain_one_level(adj, resolution=RESOLUTION):
-    """One pass of local moving. adj: {node: {neighbour: weight}} with self
-    loops allowed. Returns {node: community_id}."""
-    nodes = sorted(adj)
-    degree = {n: sum(adj[n].values()) + adj[n].get(n, 0) for n in nodes}
-    total = sum(degree.values()) / 2.0
-    if total == 0:
-        return {n: i for i, n in enumerate(nodes)}
-
-    node2com = {n: i for i, n in enumerate(nodes)}
-    com_tot = {i: degree[n] for i, n in enumerate(nodes)}
-
-    improved = True
-    while improved:
-        improved = False
-        for n in nodes:
-            own = node2com[n]
-            k_n = degree[n]
-
-            # weight from n into each neighbouring community, self loop excluded
-            weights = collections.defaultdict(float)
-            for nbr, w in adj[n].items():
-                if nbr != n:
-                    weights[node2com[nbr]] += w
-
-            com_tot[own] -= k_n
-            best_com = own
-            best_gain = weights.get(own, 0.0) - resolution * com_tot[own] * k_n / (2.0 * total)
-            for com in sorted(weights):
-                gain = weights[com] - resolution * com_tot[com] * k_n / (2.0 * total)
-                if gain > best_gain + 1e-12:
-                    best_com, best_gain = com, gain
-            com_tot[best_com] += k_n
-
-            if best_com != own:
-                node2com[n] = best_com
-                improved = True
-
-    return node2com
-
-
-def louvain(adj):
-    """Full hierarchical Louvain. Returns a list of levels, each a
-    {original_node: community_id} mapping, coarsest last."""
-    levels = []
-    membership = {n: n for n in adj}
-    current = {n: dict(nbrs) for n, nbrs in adj.items()}
-
-    while True:
-        partition = louvain_one_level(current)
-        n_before, n_after = len(current), len(set(partition.values()))
-        membership = {orig: partition[com] for orig, com in membership.items()}
-        levels.append(dict(membership))
-        if n_after == n_before or n_after == 1:
-            break
-
-        aggregated = collections.defaultdict(lambda: collections.defaultdict(float))
-        for u, nbrs in current.items():
-            for v, w in nbrs.items():
-                aggregated[partition[u]][partition[v]] += w
-        current = {u: dict(nbrs) for u, nbrs in aggregated.items()}
-
-    return levels
+    Returns None when the file does not exist — "never generated" and
+    "generated but empty" are different states and the report says so.
+    """
+    path = os.path.join(root, COMMUNITIES_MD)
+    if not os.path.isfile(path):
+        return None
+    with open(path, "r", encoding="utf-8") as fh:
+        text = fh.read()
+    return {sig: body for sig, body in SIG_MARKER_RE.findall(text)}
 
 
 # --------------------------------------------------------------------------
@@ -132,29 +79,8 @@ def build_report(root):
                 stale_backlinks.append((p.path, claimed))
 
     # --- clustering ---------------------------------------------------------
-    adj = collections.defaultdict(dict)
-    for p in v.pages:
-        adj[p.path] = {}
-    for src, dests in v.forward_edges.items():
-        for dest in dests:
-            # reciprocal links weigh double
-            adj[src][dest] = adj[src].get(dest, 0.0) + 1.0
-            adj[dest][src] = adj[dest].get(src, 0.0) + 1.0
-
-    connected = {n: nbrs for n, nbrs in adj.items() if nbrs}
-    levels = louvain(connected) if connected else []
-    partition = levels[0] if levels else {}
-
-    communities = collections.defaultdict(list)
-    for node, com in partition.items():
-        communities[com].append(node)
-
-    def workstreams_of(paths_):
-        return {by_path[p].workstream for p in paths_ if by_path[p].workstream}
-
-    ranked = sorted(communities.values(),
-                    key=lambda members: (-len(members), sorted(members)[0]))
-    cross_ws = [m for m in ranked if len(workstreams_of(m)) > 1]
+    part = partition(v)
+    cross_ws = [c for c in part if c.spans_workstreams]
 
     hubs = sorted(((p.path, v.degree(p.path)) for p in v.pages),
                   key=lambda kv: (-kv[1], kv[0]))[:5]
@@ -169,8 +95,8 @@ def build_report(root):
     w(f"- Pages: **{len(v.pages)}**")
     w(f"- Forward links (resolved): **{edge_count}**")
     w(f"- Pages with no links either way: **{len(floating)}**")
-    w(f"- Communities (finest level): **{len(communities)}**"
-      + (f", hierarchy depth {len(levels)}" if levels else ""))
+    w(f"- Communities (finest level): **{len(part)}**"
+      + (f", hierarchy depth {part.depth}" if part.depth else ""))
     w(f"- Unresolved link targets: **{len(v.unresolved)}** (allowed — pages not written yet)")
     w("")
 
@@ -239,12 +165,11 @@ def build_report(root):
     w("Modularity clustering over the wikilink graph, finest level. "
       "A community spanning 2+ workstreams is a Pattern Promotion candidate.")
     w("")
-    for members in ranked:
-        ws = workstreams_of(members)
-        label = ", ".join(sorted(ws)) if ws else "no workstream"
-        flag = "  **← spans 2+ workstreams**" if len(ws) > 1 else ""
-        w(f"- **{len(members)} pages** ({label}){flag}")
-        for path in sorted(members):
+    for com in part:
+        label = ", ".join(com.workstreams) if com.workstreams else "no workstream"
+        flag = "  **← spans 2+ workstreams**" if com.spans_workstreams else ""
+        w(f"- **{len(com.members)} pages** ({label}){flag}")
+        for path in com.members:
             w(f"    - {by_path[path].name} _({by_path[path].type or '?'})_")
     w("")
 
@@ -253,6 +178,35 @@ def build_report(root):
           "the Pattern Promotion Rule threshold. Review for a Zone 03 pattern page.")
     else:
         w("No community spans more than one workstream yet.")
+    w("")
+
+    w("### Summary coverage")
+    w("")
+    w(f"`{COMMUNITIES_MD}` is the vault's global-search layer — one summary per "
+      "community, regenerated by the ingest run. Out-of-date summaries are "
+      "reported here, never fixed here: this check never writes.")
+    w("")
+    recorded = recorded_summaries(root)
+    if recorded is None:
+        w(f"No `{COMMUNITIES_MD}` yet. Run `community-summarize.py` to build it.")
+    elif not part:
+        w("Nothing to summarise: the graph has no communities yet.")
+    else:
+        missing = [c for c in part if c.signature not in recorded]
+        drifted = [c for c in part if c.signature in recorded
+                   and recorded[c.signature] != c.body_hash(v)]
+        current = len(part) - len(missing) - len(drifted)
+        w(f"- Current: **{current}** of **{len(part)}**")
+        w(f"- No summary yet: **{len(missing)}** (membership changed or new)")
+        w(f"- Pages edited since the summary was written: **{len(drifted)}**")
+        for com, reason in ([(c, "no summary") for c in missing]
+                            + [(c, "pages edited") for c in drifted]):
+            w(f"    - `{com.signature}` — {len(com.members)} pages "
+              f"({', '.join(com.workstreams) or 'no workstream'}) — {reason}")
+        if missing or drifted:
+            w("")
+            w("The next ingest run refreshes these. To do it now: "
+              "`python3 .github/scripts/community-summarize.py`")
     w("")
 
     w("## Hubs")

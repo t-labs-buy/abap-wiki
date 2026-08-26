@@ -29,10 +29,12 @@ VALID_ZONE_PREFIXES = (
 
 # Pipeline state files the ingest agent must never rewrite. meta/ is otherwise
 # writable (entities.md and index.md are legitimately model-maintained), but
-# these two are written by this script alone: a model-generated "update" to
+# these three are written by scripts alone: a model-generated "update" to
 # inbox.md would wipe the dedup table and cause every processed file to be
-# re-ingested, and one to log.md would erase the ingest history.
-PROTECTED_PATHS = frozenset({"meta/inbox.md", "meta/log.md"})
+# re-ingested, one to log.md would erase the ingest history, and one to
+# communities.md would desynchronise the summaries from the graph hashes that
+# community-summarize.py caches against.
+PROTECTED_PATHS = frozenset({"meta/inbox.md", "meta/log.md", "meta/communities.md"})
 
 # Maps a page's path prefix to the index heading it belongs under.
 # Order matters: it doubles as the priority order when a wikilink target
