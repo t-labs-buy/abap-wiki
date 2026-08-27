@@ -8,6 +8,11 @@ damage rather than good:
 
   - Stable identity. A community's signature is its cache key. If signatures
     churn between runs, every ingest re-summarises the whole vault.
+  - A real hierarchy. Every sub-cluster sits inside its parent and the children
+    of a cluster partition it exactly, or the file describes a tree the graph
+    does not have. Invalidation must cascade upward: a coarse summary written
+    from children that have since been rewritten is stale and says nothing
+    about it.
   - No graph pollution. The file must contain no [[wikilinks]] and must not
     change what graph-health sees. A generated file that creates edges makes
     the checker demand backlinks for pages nobody wrote.
@@ -36,7 +41,8 @@ SUMMARIZE = os.path.join(SCRIPTS, "community-summarize.py")
 GRAPH_HEALTH = os.path.join(SCRIPTS, "graph-health.py")
 
 sys.path.insert(0, SCRIPTS)
-from vault_communities import partition, signature_of   # noqa: E402
+from vault_communities import (disconnected_communities, hierarchy,  # noqa: E402
+                               leaves, partition, signature_of, walk)
 from vault_model import Vault                           # noqa: E402
 
 spec = importlib.util.spec_from_file_location("community_summarize", SUMMARIZE)
@@ -191,6 +197,109 @@ def test_clustering(root):
 
 
 # --------------------------------------------------------------------------
+# Hierarchy
+# --------------------------------------------------------------------------
+
+def build_big_vault(root):
+    """A vault big enough for the split to have something to find.
+
+    The small fixture never exceeds MAX_COMMUNITY_SIZE, so it can only prove
+    that a flat vault stays flat. Size is not the only requirement: modularity
+    has a resolution limit, and a cluster the top-level pass already broke
+    apart has no substructure left inside it. What produces a real hierarchy is
+    a graph large enough that structure *below* that limit survives into a
+    cluster — here, four ring-linked workstreams joined by one bridging
+    pattern, which leaves one oversized cluster with three sub-clusters in it.
+    """
+    pages = {}
+    for ws in ("OTC", "P2P", "RTR", "INT"):
+        names = [f"{ws} - E-{i:03d} - Object {i}" for i in range(1, 10)]
+        for i, name in enumerate(names):
+            peers = [names[(i + 1) % 9], names[(i + 2) % 9]]
+            pages[f"02-workstreams/Developments/{ws}/{name}.md"] = page(
+                fm(name, "development", "02-workstreams", ws),
+                "# x\n\n" + "\n".join(f"[[{p}]]" for p in peers)
+                + f"\n[[{ws}]]\n" + PROSE)
+        pages[f"02-workstreams/Workstreams/{ws}.md"] = page(
+            fm(ws, "workstream", "02-workstreams", ws),
+            "# w\n\n" + "\n".join(f"[[{n}]]" for n in names) + "\n" + PROSE)
+
+    pages["03-intelligence/patterns/Pattern - Bridge.md"] = page(
+        fm("Bridge", "pattern", "03-intelligence"),
+        "# p\n\n[[OTC - E-001 - Object 1]]\n[[P2P - E-001 - Object 1]]\n"
+        "[[RTR - E-001 - Object 1]]\n[[INT - E-001 - Object 1]]\n" + PROSE)
+
+    for rel, text in pages.items():
+        path = os.path.join(root, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+    os.makedirs(os.path.join(root, "meta"), exist_ok=True)
+
+
+def test_hierarchy():
+    print("\nHierarchy")
+    tmp = tempfile.mkdtemp()
+    try:
+        build_big_vault(tmp)
+        v = Vault(tmp)
+        roots = hierarchy(v)
+        nodes = list(walk(roots))
+
+        check("a large cluster splits", any(n.children for n in nodes),
+              "nothing split at the production threshold — the hierarchy is "
+              "inert and the file would have one level")
+        check("roots are the broadest level",
+              all(n.level == 0 for n in roots))
+        check("children sit inside their parent",
+              all(set(k.community.members) <= set(n.community.members)
+                  for n in nodes for k in n.children))
+        check("children partition their parent exactly",
+              all(sorted(m for k in n.children for m in k.community.members)
+                  == n.community.members
+                  for n in nodes if n.children),
+              "a child set that loses or duplicates a page describes a tree "
+              "the graph does not have")
+        check("numbering follows the tree",
+              all(k.number.startswith(n.number + ".")
+                  for n in nodes for k in n.children))
+        check("leaves are the childless nodes",
+              [c.members for c in leaves(roots)]
+              == [n.community.members for n in nodes if not n.children])
+        check("the tree is deterministic",
+              [(n.number, n.signature) for n in nodes]
+              == [(x.number, x.signature) for x in walk(hierarchy(Vault(tmp)))])
+        check("every community is internally connected",
+              not disconnected_communities(v, [n.community for n in nodes]),
+              "Louvain does not guarantee this and Leiden does — if this ever "
+              "fails on real content, the refinement phase has become worth "
+              "writing")
+
+        # Cascade: editing one page must re-summarise its leaf and every
+        # ancestor, and nothing else.
+        run(SUMMARIZE, tmp, "--today", TODAY)
+        fake_summaries(tmp)
+        proc = run(SUMMARIZE, tmp, "--dry-run")
+        check("an untouched vault reuses the whole tree",
+              f"would reuse {len(nodes)}, would summarise 0" in proc.stdout,
+              proc.stdout)
+
+        split_root = next(n for n in roots if n.children)
+        target = os.path.join(tmp, split_root.children[0].community.members[0])
+        with open(target, "a", encoding="utf-8") as fh:
+            fh.write("\nA sentence added after the summary was written.\n")
+
+        proc = run(SUMMARIZE, tmp, "--dry-run")
+        check("an edit invalidates the leaf and its ancestors, and nothing else",
+              f"would reuse {len(nodes) - 2}, would summarise 2" in proc.stdout,
+              proc.stdout)
+        check("the coarse community is one of them",
+              split_root.signature in proc.stdout, proc.stdout)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# --------------------------------------------------------------------------
 # Generated file
 # --------------------------------------------------------------------------
 
@@ -202,14 +311,16 @@ def test_output(root):
 
     text = open(out_path(root), encoding="utf-8").read()
     v = Vault(root)
-    part = partition(v)
+    nodes = list(walk(hierarchy(v)))
 
     check("no wikilinks in the output", "[[" not in text,
           "a generated meta file must not create graph edges")
     check("every community has a signature marker",
-          all(f"sig: {c.signature}" in text for c in part))
+          all(f"sig: {n.signature}" in text for n in nodes))
     check("unsummarised communities are marked pending",
-          text.count("body: pending") == len(part))
+          text.count("body: pending") == len(nodes))
+    check("every community records its level",
+          all(f"level: {n.level} -->" in text for n in nodes))
     check("says not to cite it", "Never cite a community" in text)
 
     named = set(re.findall(r"`([^`]+)`", text))
@@ -219,7 +330,8 @@ def test_output(root):
     check("every page name in the file exists", not unknown, f"unknown: {sorted(unknown)}")
 
     check("every member page is listed",
-          all(v.by_path[m].name in text for c in part for m in c.members))
+          all(v.by_path[m].name in text for c in leaves(hierarchy(v))
+              for m in c.members))
 
 
 def test_graph_untouched(root):
@@ -233,11 +345,15 @@ def test_graph_untouched(root):
 
     proc = run(GRAPH_HEALTH, root)
     check("graph-health still runs", proc.returncode == 0, proc.stderr)
-    listed = re.findall(r"^- \*\*(\d+) pages\*\*", proc.stdout, re.MULTILINE)
-    part = partition(after)
-    check("graph-health reports the shared partition",
-          [int(n) for n in listed] == [len(c.members) for c in part],
+    listed = re.findall(r"^ *- \*\*(\d+) pages\*\*", proc.stdout, re.MULTILINE)
+    nodes = list(walk(hierarchy(after)))
+    check("graph-health reports the shared hierarchy",
+          [int(n) for n in listed] == [len(n.community.members) for n in nodes],
           "graph-health must not re-implement clustering")
+    check("graph-health reports internal connectivity",
+          "### Internal connectivity" in proc.stdout)
+    check("graph-health reports embedding coverage",
+          "### Embedding coverage" in proc.stdout)
     check("graph-health reports summary coverage", "### Summary coverage" in proc.stdout)
 
 
@@ -245,14 +361,34 @@ def test_graph_untouched(root):
 # Cache
 # --------------------------------------------------------------------------
 
-def fake_summaries(root):
-    """Stand in for a successful API run so the cache path is testable."""
+def fake_summaries(root, max_size=None):
+    """Stand in for a successful API run so the cache path is testable.
+
+    A coarse community's cache key is a roll-up of what its children say, not
+    the hash of its member pages — so this has to fill in the same hash
+    community-summarize.py would have written, or every parent looks stale on
+    the next run and the cascade test proves nothing.
+    """
     v = Vault(root)
     text = open(out_path(root), encoding="utf-8").read()
-    for i, com in enumerate(partition(v), 1):
-        text = text.replace(f"<!-- sig: {com.signature} body: pending -->",
-                            f"<!-- sig: {com.signature} body: {com.body_hash(v)} -->")
-        text = text.replace(f"## {i} — ", f"## {i} — Cached title {i} ", 1)
+    tree = hierarchy(v, max_size=max_size) if max_size else hierarchy(v)
+    nodes = list(walk(tree))
+
+    summaries = {n.signature: (f"Cached title {i}", "Cached prose.")
+                 for i, n in enumerate(nodes, 1)}
+
+    for i, node in enumerate(nodes, 1):
+        com = node.community
+        want = (cs.rollup_hash(node.children, summaries) if node.children
+                else com.body_hash(v))
+        text = text.replace(
+            f"<!-- sig: {com.signature} body: pending level: {node.level} -->",
+            f"<!-- sig: {com.signature} body: {want} level: {node.level} -->")
+        # Replace the whole heading, not just its start: the roll-up hash is
+        # computed from the children's titles, so a title that keeps its
+        # generated tail would not match what this stub claims it is.
+        text = re.sub(rf"^(#{{3,6}} {re.escape(node.number)} — ).*$",
+                      rf"\g<1>Cached title {i}", text, count=1, flags=re.MULTILINE)
     text = text.replace("_No summary yet — the next run with an API key writes one._",
                         "<!-- summary: begin -->\nCached prose.\n<!-- summary: end -->")
     with open(out_path(root), "w", encoding="utf-8") as fh:
@@ -265,7 +401,8 @@ def test_cache(root):
     fake_summaries(root)
 
     cache = cs.read_cache(out_path(root))
-    part = partition(Vault(root))
+    nodes = list(walk(hierarchy(Vault(root))))
+    part = [n.community for n in nodes]
     check("cached summaries are read back",
           set(cache) == {c.signature for c in part})
     check("cached prose survives a rerun",
@@ -283,7 +420,7 @@ def test_cache(root):
     with open(target, "a", encoding="utf-8") as fh:
         fh.write("\nA sentence added after the summary was written.\n")
 
-    edited = partition(Vault(root))
+    edited = [n.community for n in walk(hierarchy(Vault(root)))]
     owner = next(c for c in edited
                  if "02-workstreams/Developments/INT/INT - ZADUSR_SYNC.md" in c.members)
     proc = run(SUMMARIZE, root, "--dry-run")
@@ -350,7 +487,7 @@ def test_model_path():
             cs.get_client, cs.call_api_with_retry = real_client, real_call
 
         text = open(out_path(tmp), encoding="utf-8").read()
-        part = partition(Vault(tmp))
+        part = [n.community for n in walk(hierarchy(Vault(tmp)))]
         check("exits 0", rc == 0)
         check("one call per community", len(calls) == len(part))
         check("the prompt carries the member pages",
@@ -387,6 +524,7 @@ def main():
     try:
         build_vault(tmp)
         test_clustering(tmp)
+        test_hierarchy()
         test_output(tmp)
         test_graph_untouched(tmp)
         test_cache(tmp)

@@ -141,22 +141,54 @@ Read `<VAULT_PATH>/meta/index.md` — the master navigation catalog, organised b
 zone, listing every page with a one-line description. Choose the pages worth
 reading from there.
 
-**Normalise names before searching.** The vault uses canonical slugs, and
-people rarely use them: "Order-to-Cash", "O2C" and "the OTC stream" are all
-`OTC`. Check `<VAULT_PATH>/meta/entities.md` — the registry of canonical
-workstream, module, system and vendor names with their aliases — whenever the
-question names something that might have variants. Searching for the user's
-wording alone will miss pages.
-
-To find pages the index doesn't obviously cover, search content directly. Use
-the real path and keep `raw/` out of scope:
+To find pages the index doesn't obviously cover, search the content:
 
 ```bash
-grep -ril "search term" /ABSOLUTE/VAULT_PATH/0*/
+python3 /ABSOLUTE/VAULT_PATH/.github/scripts/vault-search.py "what you are looking for" \
+  --root /ABSOLUTE/VAULT_PATH
 ```
 
-(The `0*/` glob covers exactly the four content zones and excludes `raw/`,
-`meta/` and `.git`.)
+Windows: same command with `python` instead of `python3`.
+
+**Use this rather than `grep`.** It ranks pages instead of listing files, and
+it closes the gap grep never could: the vault is written in the team's
+vocabulary and the question arrives in the reader's. It searches only the four
+content zones, so `raw/` and `meta/` can never appear in a result.
+
+Three things it does for you, which is why the query can be the user's own
+words rather than a guess at the vault's:
+
+- **Aliases are expanded automatically** from `meta/entities.md`. "Order-to-Cash",
+  "O2C" and "the OTC stream" all reach `OTC` pages without you normalising
+  anything first. (Read `entities.md` yourself only when you need to *state* a
+  canonical name, not to search for one.)
+- **ABAP identifiers are split**, so "order check" finds `ZSD_ORDER_CHECK`.
+- **Linked neighbours surface**, so the development record next to the decision
+  that matched comes with it.
+
+Useful flags:
+
+| Situation                              | Flag                                          |
+| -------------------------------------- | --------------------------------------------- |
+| The question names a workstream        | `--workstream OTC`                            |
+| You want one artifact type             | `--type decision`                             |
+| An exact string is genuinely what's wanted | `--literal`                                |
+| You only need paths to read next       | `--format paths`                              |
+| More results                           | `--top 15`                                    |
+
+Each result shows the page name, its type, workstream and `updated` date, its
+path, and a matching excerpt — plus a `⚠` line when the page is draft,
+unvalidated, or carries an unresolved conflict. Carry those warnings into your
+answer.
+
+The first line of the output says which tiers ran. `lexical` is the normal
+state and is not a caveat worth mentioning to the user; `lexical + semantic`
+means the vault's committed vector index and an embedding key were both
+available. Nothing about how you answer changes either way.
+
+If `python3` is missing or the script errors, fall back to
+`grep -ril "term" /ABSOLUTE/VAULT_PATH/0*/` and say in one line that ranked
+search was unavailable.
 
 Structure:
 
@@ -180,7 +212,7 @@ wastes the turn.
 meeting or document: "what does ZSD_ORDER_CHECK do?", "who owns the credit
 release job?", "what did we decide about the custom BAPI?"
 
-Nothing changes: index → alias normalisation → `grep -ril` → read whole pages.
+Nothing changes: index → `vault-search.py` → read whole pages.
 
 **Global — the question is about the corpus.** "What are the recurring themes
 across our workstreams?", "what should a new joiner know before touching OTC?",
@@ -189,9 +221,9 @@ Signals: aggregate or superlative framing (*main, recurring, across, overall,
 biggest, themes, so far*), no named entity at all, or an entity as broad as a
 whole workstream.
 
-Grep cannot answer these. The answer is spread across pages that share no
-vocabulary with the question, so a literal search returns nothing or everything.
-Read this instead:
+Search cannot answer these, ranked or not. The answer is spread across pages
+that share no vocabulary with the question, so any query over page text returns
+nothing or everything. Read this instead:
 
 ```
 <VAULT_PATH>/meta/communities.md
@@ -199,13 +231,23 @@ Read this instead:
 
 It holds one summary per cluster of the wikilink graph — pages that link to each
 other far more than they link to the rest of the vault, which is what a "theme"
-in this vault actually is. Read the `## Index` table first, pick the two or
-three communities the question touches, read those sections, then open the pages
-each one lists under **Start here**.
+in this vault actually is.
+
+**It is a tree, and you read it top-down.** The `## Index` table is the whole
+vault in a handful of broad areas. Pick the one or two the question touches and
+read their sections. An area too large to describe as one thing is written out
+with its sub-clusters nested underneath it (`### 2` splits into `#### 2.1`,
+`#### 2.2`) — go one level deeper only when the broad summary is not specific
+enough to answer. The clusters that list **All pages** are the leaves; open the
+pages they name under **Start here**.
+
+Stop descending as soon as you can name the pages you need. A broad question
+usually needs one level; "what should I know before touching OTC" usually needs
+two.
 
 **Both — a broad question about a named area.** "What's the state of OTC?",
 "what's going on with our IDoc work?" Communities first, to learn the shape of
-the area; then grep for the specifics they point at.
+the area; then `vault-search.py` for the specifics they point at.
 
 ### Three rules that keep a global answer honest
 
@@ -216,12 +258,12 @@ the area; then grep for the specifics they point at.
   pages beneath it and can fall behind an edit. Before asserting something a
   summary told you, open the page and confirm it there.
 - **If the file is missing, empty, or says "no communities yet"**, say so in one
-  line and fall back to the grep path. A vault with no linked pages has no
+  line and fall back to `vault-search.py`. A vault with no linked pages has no
   themes, and inventing some is exactly the failure this skill exists to prevent.
 
 ## Step 4 — Read the relevant pages
 
-Read whole pages rather than grep fragments. Frontmatter carries `status`,
+Read whole pages rather than search excerpts. Frontmatter carries `status`,
 `owner`, `updated` and `workstream`, which often matter to the answer.
 
 ## Step 5 — Answer

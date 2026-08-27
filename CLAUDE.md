@@ -698,10 +698,11 @@ When a team member asks a question about the vault:
 **How to answer:**
 
 1. Read `meta/index.md` first to orient
-2. Read relevant pages from the appropriate zone
-3. Answer from synthesized vault content only — not from raw files in `raw/`
-4. Cite which vault page you are drawing from. Example: "From [[Decision - OTC - Custom BAPI approach - 2026-07-15]]…"
-5. If the answer is not in the vault, say so explicitly: "The vault doesn't have this yet — consider ingesting [X]."
+2. Find the pages with `.github/scripts/vault-search.py "the question"` — it ranks pages, expands entity aliases from `meta/entities.md`, splits ABAP identifiers, and never returns anything from `raw/` or `meta/`. For a question about the vault as a whole rather than about a named thing, read `meta/communities.md` instead and work down its tree.
+3. Read relevant pages from the appropriate zone
+4. Answer from synthesized vault content only — not from raw files in `raw/`
+5. Cite which vault page you are drawing from. Example: "From [[Decision - OTC - Custom BAPI approach - 2026-07-15]]…"
+6. If the answer is not in the vault, say so explicitly: "The vault doesn't have this yet — consider ingesting [X]."
 
 **Source of truth:**
 
@@ -773,7 +774,8 @@ Multiple team members use this vault simultaneously.
 - **`meta/inbox.md`** — Deduplication table for processed files.
 - **`meta/entities.md`** — Registry of canonical names (workstreams, modules, systems, vendors) and their aliases.
 - **`meta/conventions.md`** — Naming, frontmatter, linking conventions (human-readable reference).
-- **`meta/communities.md`** — Generated cluster map of the wikilink graph: one summary per community of densely-linked pages, refreshed on every ingest. It is how a question about the vault as a whole gets answered — navigation for cross-cutting questions, never a citation source. Written by `community-summarize.py` alone; do not hand-edit.
+- **`meta/communities.md`** — Generated cluster map of the wikilink graph: one summary per community of densely-linked pages, arranged as a tree from broad areas down to individual page clusters, refreshed on every ingest. It is how a question about the vault as a whole gets answered — navigation for cross-cutting questions, never a citation source. Written by `community-summarize.py` alone; do not hand-edit.
+- **`meta/embeddings.json` / `meta/embeddings.bin`** — Generated vector index over page bodies and the sections of long pages, refreshed on every ingest. It is the semantic tier of `vault-search.py`: it finds a page whose wording differs from the question's. Committed so that reading the vault needs no index build; the manifest names the model it was built with, and an index built by a different model is rebuilt rather than mixed. Written by `embed-index.py` alone; never hand-edit either file.
 
 ---
 

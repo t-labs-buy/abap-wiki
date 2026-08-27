@@ -60,6 +60,18 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python .github/scripts/community-summarize.py --root .
 
+      # The semantic tier of vault-search.py. Runs after the pages exist and
+      # after the summaries, because it embeds page bodies and nothing else
+      # depends on it. Incremental: only pages whose text changed are sent, so
+      # a one-file ingest costs one embedding call. With no VOYAGE_API_KEY set
+      # this step prints why and changes nothing — search stays lexical, which
+      # is the state every reader's laptop is in anyway.
+      - name: Refresh embedding index
+        if: always()
+        env:
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+        run: python .github/scripts/embed-index.py --root .
+
       - name: Commit and push vault updates
         run: |
           git config user.name "ABAP Vault"

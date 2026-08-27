@@ -9,10 +9,12 @@ Builds the wikilink graph from every content page in zones 01-04 and reports:
     entry in the target's "## Linked from" section       -> Linking Rules
   - unresolved wikilinks: targets with no page yet       -> allowed (Code Ingestion
                                                             Rule), reported for info
-  - communities found by modularity clustering, flagged
-    when one spans 2+ workstreams                        -> Pattern Promotion Rule
+  - the community tree found by modularity clustering,
+    flagged when a cluster spans 2+ workstreams           -> Pattern Promotion Rule
+  - communities that are not internally connected        -> reported, see below
   - whether meta/communities.md still describes the
     graph as it now stands                               -> global-search layer
+  - whether meta/embeddings.* covers every page          -> semantic search tier
 
 Read-only: writes no vault pages. Standard library only, no third-party deps.
 
@@ -23,7 +25,9 @@ Usage:
 ends, backlink asymmetry). Unresolved links never fail the run: the constitution
 explicitly allows forward links to pages that do not exist yet. Nor do stale
 community summaries: they mean the next ingest has work to do, not that the
-vault is broken.
+vault is broken. Nor do internally disconnected communities: that line is
+evidence for whether Leiden's refinement phase would be worth writing, and it
+has never been a claim about the vault's content.
 """
 
 import argparse
@@ -32,11 +36,12 @@ import os
 import re
 import sys
 
-from vault_communities import partition
+from vault_communities import disconnected_communities, hierarchy, leaves, walk
 from vault_model import Vault
+import vault_search
 
 COMMUNITIES_MD = os.path.join("meta", "communities.md")
-SIG_MARKER_RE = re.compile(r"<!--\s*sig:\s*([0-9a-f]+)\s+body:\s*([0-9a-f]+)\s*-->")
+SIG_MARKER_RE = re.compile(r"<!--\s*sig:\s*([0-9a-f]+)\s+body:\s*([0-9a-f]+)[^>]*-->")
 
 
 def recorded_summaries(root):
@@ -79,8 +84,12 @@ def build_report(root):
                 stale_backlinks.append((p.path, claimed))
 
     # --- clustering ---------------------------------------------------------
-    part = partition(v)
-    cross_ws = [c for c in part if c.spans_workstreams]
+    roots = hierarchy(v)
+    nodes = list(walk(roots))
+    finest = leaves(roots)
+    depth = (max(n.level for n in nodes) + 1) if nodes else 0
+    cross_ws = [c for c in finest if c.spans_workstreams]
+    broken = disconnected_communities(v, [n.community for n in nodes])
 
     hubs = sorted(((p.path, v.degree(p.path)) for p in v.pages),
                   key=lambda kv: (-kv[1], kv[0]))[:5]
@@ -95,8 +104,8 @@ def build_report(root):
     w(f"- Pages: **{len(v.pages)}**")
     w(f"- Forward links (resolved): **{edge_count}**")
     w(f"- Pages with no links either way: **{len(floating)}**")
-    w(f"- Communities (finest level): **{len(part)}**"
-      + (f", hierarchy depth {part.depth}" if part.depth else ""))
+    w(f"- Communities: **{len(nodes)}** across **{depth}** level(s), "
+      f"**{len(finest)}** at the finest")
     w(f"- Unresolved link targets: **{len(v.unresolved)}** (allowed — pages not written yet)")
     w("")
 
@@ -162,15 +171,42 @@ def build_report(root):
 
     w("## Communities")
     w("")
-    w("Modularity clustering over the wikilink graph, finest level. "
-      "A community spanning 2+ workstreams is a Pattern Promotion candidate.")
+    w("Modularity clustering over the wikilink graph, then recursive splitting "
+      "of any cluster too large to describe as one thing. A cluster spanning "
+      "2+ workstreams is a Pattern Promotion candidate; the flag is shown at "
+      "the finest level only, since every broad cluster spans workstreams by "
+      "construction.")
     w("")
-    for com in part:
+    for node in nodes:
+        com = node.community
+        indent = "    " * node.level
         label = ", ".join(com.workstreams) if com.workstreams else "no workstream"
-        flag = "  **← spans 2+ workstreams**" if com.spans_workstreams else ""
-        w(f"- **{len(com.members)} pages** ({label}){flag}")
+        flag = ("  **← spans 2+ workstreams**"
+                if not node.children and com.spans_workstreams else "")
+        w(f"{indent}- **{len(com.members)} pages** ({label}){flag}")
+        if node.children:
+            w(f"{indent}    _splits into {len(node.children)} sub-clusters_")
+            continue
         for path in com.members:
-            w(f"    - {by_path[path].name} _({by_path[path].type or '?'})_")
+            w(f"{indent}    - {by_path[path].name} _({by_path[path].type or '?'})_")
+    w("")
+
+    w("### Internal connectivity")
+    w("")
+    w("Plain Louvain can leave a community whose members no longer reach each "
+      "other from inside it — the guarantee Leiden's refinement phase adds. "
+      "This line is the evidence for whether that phase is worth writing; it "
+      "never fails the run.")
+    w("")
+    if broken:
+        for com, stranded in broken:
+            w(f"- `{com.signature}` — {len(stranded)} of {len(com.members)} "
+              "pages are not reachable from the rest of the community")
+            for path in stranded:
+                w(f"    - `{by_path[path].name}`")
+    else:
+        w("Every community is internally connected. Louvain and Leiden agree "
+          "on this graph.")
     w("")
 
     if cross_ws:
@@ -189,14 +225,19 @@ def build_report(root):
     recorded = recorded_summaries(root)
     if recorded is None:
         w(f"No `{COMMUNITIES_MD}` yet. Run `community-summarize.py` to build it.")
-    elif not part:
+    elif not nodes:
         w("Nothing to summarise: the graph has no communities yet.")
     else:
-        missing = [c for c in part if c.signature not in recorded]
-        drifted = [c for c in part if c.signature in recorded
+        # A coarse community is summarised from its children, so its recorded
+        # hash is a rollup this checker cannot recompute without the summaries
+        # themselves. Presence is what is checkable here; drift is checked
+        # where it is computable, at the leaves.
+        tree = [n.community for n in nodes]
+        missing = [c for c in tree if c.signature not in recorded]
+        drifted = [c for c in finest if c.signature in recorded
                    and recorded[c.signature] != c.body_hash(v)]
-        current = len(part) - len(missing) - len(drifted)
-        w(f"- Current: **{current}** of **{len(part)}**")
+        current = len(tree) - len(missing) - len(drifted)
+        w(f"- Current: **{current}** of **{len(tree)}**")
         w(f"- No summary yet: **{len(missing)}** (membership changed or new)")
         w(f"- Pages edited since the summary was written: **{len(drifted)}**")
         for com, reason in ([(c, "no summary") for c in missing]
@@ -207,6 +248,35 @@ def build_report(root):
             w("")
             w("The next ingest run refreshes these. To do it now: "
               "`python3 .github/scripts/community-summarize.py`")
+    w("")
+
+    w("### Embedding coverage")
+    w("")
+    w("The semantic tier of `vault-search.py` reads vectors committed to "
+      "`meta/`. Reported, never required: an absent or partial index costs "
+      "recall, and the lexical tier answers without it.")
+    w("")
+    manifest, _ = vault_search.load_embeddings(root)
+    if manifest is None:
+        w("No committed index. Search runs lexical-only. To build one: "
+          "`python3 .github/scripts/embed-index.py` with an embedding key set.")
+    else:
+        indexed = {e.get("path") for e in manifest["entries"]}
+        stale = sorted(indexed - set(by_path))
+        uncovered = sorted(p.path for p in v.pages if p.path not in indexed)
+        w(f"- Model: `{manifest.get('model', '?')}` · "
+          f"{manifest.get('dim', '?')} dims · "
+          f"**{len(manifest['entries'])}** vectors")
+        w(f"- Pages with no vector: **{len(uncovered)}** of **{len(v.pages)}**")
+        w(f"- Vectors for pages that no longer exist: **{len(stale)}**")
+        for path in uncovered:
+            w(f"    - `{path}`")
+        for path in stale:
+            w(f"    - stale: `{path}`")
+        if uncovered or stale:
+            w("")
+            w("The next ingest refreshes these. To do it now: "
+              "`python3 .github/scripts/embed-index.py`")
     w("")
 
     w("## Hubs")

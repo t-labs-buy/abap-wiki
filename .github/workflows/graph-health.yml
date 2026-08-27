@@ -14,12 +14,17 @@ on:
       - "04-internal/**"
       - ".github/scripts/vault_model.py"
       - ".github/scripts/vault_communities.py"
+      - ".github/scripts/vault_search.py"
       - ".github/scripts/graph-health.py"
       - ".github/scripts/community-summarize.py"
       - ".github/scripts/question-gen.py"
       - ".github/scripts/prompt-suggest.py"
+      - ".github/scripts/vault-search.py"
+      - ".github/scripts/embed-index.py"
       - ".github/scripts/tests/prompt_suggest_test.py"
       - ".github/scripts/tests/community_test.py"
+      - ".github/scripts/tests/search_test.py"
+      - ".github/scripts/tests/embed_test.py"
       - ".github/workflows/graph-health.yml"
   pull_request:
     paths:
@@ -29,12 +34,17 @@ on:
       - "04-internal/**"
       - ".github/scripts/vault_model.py"
       - ".github/scripts/vault_communities.py"
+      - ".github/scripts/vault_search.py"
       - ".github/scripts/graph-health.py"
       - ".github/scripts/community-summarize.py"
       - ".github/scripts/question-gen.py"
       - ".github/scripts/prompt-suggest.py"
+      - ".github/scripts/vault-search.py"
+      - ".github/scripts/embed-index.py"
       - ".github/scripts/tests/prompt_suggest_test.py"
       - ".github/scripts/tests/community_test.py"
+      - ".github/scripts/tests/search_test.py"
+      - ".github/scripts/tests/embed_test.py"
       - ".github/workflows/graph-health.yml"
   schedule:
     - cron: "0 8 * * 1" # Mondays 08:00 UTC, an hour after the ingest sweep
@@ -93,11 +103,27 @@ jobs:
 
       # meta/communities.md is read by the skill to answer questions about the
       # vault as a whole, so its guarantees are load-bearing: stable community
-      # signatures (or every ingest re-summarises everything), no wikilinks in
-      # a generated meta file, and no page name that does not exist.
+      # signatures (or every ingest re-summarises everything), a hierarchy that
+      # actually nests, no wikilinks in a generated meta file, and no page name
+      # that does not exist.
       - name: Test community summaries
         if: always()
         run: python3 .github/scripts/tests/community_test.py
+
+      # vault-search.py replaced grep in the skill, so it inherits grep's
+      # promise and adds one grep never made. This gate covers both, plus the
+      # rule that no result may ever come from raw/ or meta/.
+      - name: Test search
+        if: always()
+        run: python3 .github/scripts/tests/search_test.py
+
+      # The vector index is a binary blob built by a paid API and read on
+      # machines that have neither the key nor any way to tell a good vector
+      # from a bad one. The gate is mostly about what happens when something is
+      # wrong: absent, truncated, half-written, or built by another model.
+      - name: Test embedding index
+        if: always()
+        run: python3 .github/scripts/tests/embed_test.py
 
       # The reader-facing counterpart to the candidate questions: what the
       # vault CAN answer. The abap-wiki skill runs this same script against its
