@@ -26,6 +26,8 @@ The single source of truth for names. Before creating **any** new workstream fol
 | FI             | Financial Accounting | `fi`, `finance`, `financial accounting`, `gl/ar/ap/aa` | _(verify)_ |
 | CO             | Controlling          | `co`, `controlling`                                    | _(verify)_ |
 | PP             | Production Planning  | `pp`, `production planning`                            | _(verify)_ |
+| RE             | Retail               | `re`, `retail`                                         | _(verify)_ |
+| BI             | BW/BI                | `bi`, `bw`, `bw/bi`, `bw bi`                            | _(verify)_ |
 
 ## Systems
 
@@ -54,7 +56,7 @@ Tags are **domain tags only** — they say what a page is _about_. Do not tag wh
 ### technology
 
 | Tag         | Covers / aliases                                              |
-| ----------- | ------------------------------------------------------------- |
+| ----------- | ------------------------------------------------------------ |
 | bapi        | BAPI calls, `BAPI_*` function modules, commit handling        |
 | idoc        | IDocs, ALE, change pointers                                   |
 | cds         | CDS views, AMDP                                               |

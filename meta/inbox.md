@@ -8,3 +8,4 @@ One row per processed file. The pipeline appends; humans don't edit.
 
 | Filename | Processed on | Pages touched | Notes |
 | -------- | ------------ | ------------- | ----- |
+| ABAP_dev_standards.pdf | 2026-08-27 | 5476b95f764c98cd1b97ccbd2532b49c | meta/entities.md, meta/index.md | 01-standards/coding/Standard - ABAP Naming Conventions.md, 01-standards/coding/Standard - ABAP Programming Guidelines.md, 01-standards/coding/Standard - ABAP Performance Guidelines.md, 04-internal/processes/Process - Code Review.md |

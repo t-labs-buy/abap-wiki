@@ -2,15 +2,15 @@
 
 Master navigation catalog, organized by zone. **Updated on every ingest** — when a page is created or renamed, its entry here changes too.
 
-_Last updated: 2026-08-13_
-
-> Vault reset on 2026-08-13. No content pages yet — the structure below is the empty skeleton. Drop source material into `raw/inbox/` to begin.
+_Last updated: 2026-08-27_
 
 ## 01-standards
 
 ### Coding
 
-- _(none yet)_
+- [[Standard - ABAP Naming Conventions]] — object and code naming conventions for all Z-repository objects
+- [[Standard - ABAP Programming Guidelines]] — general programming rules and program header/change documentation
+- [[Standard - ABAP Performance Guidelines]] — ECC and ABAP-on-HANA performance rules and analysis tools
 
 ### Architecture
 
@@ -82,4 +82,6 @@ _Last updated: 2026-08-13_
 
 ## 04-internal
 
-- _(none yet)_
+### Processes
+
+- [[Process - Code Review]] — mandatory pre-transport code-review gates
